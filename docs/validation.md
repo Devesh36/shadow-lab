@@ -265,3 +265,74 @@ Both installation and the real outside-checkout investigation **passed**. The re
 `gh run list --repo Devesh36/shadow-lab --branch feature/browser-identity-validation --limit 3 --json databaseId,workflowName,status,conclusion,url` was **blocked with HTTP 403**. Remote CI status, including the macOS Homebrew job, could not be observed through this API; no network/security permissions were broadened. The native 72-test result and actual GitHub-installed demo are independently observed results.
 
 Temporary web and PostgreSQL validation containers were removed after their checks. The native product services remain available on loopback: `/`, `/demo`, `/app`, and the dashboard proxy health route each returned **200** on port 3000. No release, package registry publication, merge or external deployment was performed.
+
+## Landing-only Vercel increment — 2026-10-09
+
+The user narrowed hosting to **the landing page only**. The final deployment is the self-contained `apps/landing` Next.js static export. Vercel Root Directory is **`apps/landing`**, build command **`npm run build`**, output **`out`**. No application environment variables, backend service, bindings, database, dashboard or scanner are part of this deployment. Demo links go to local installation instructions. Existing `apps/web`, `apps/api`, packages, trusted demo and local launchers have no source diff in this increment.
+
+The proposed multi-service adapter/configuration and its tests were removed from the active patch after the scope correction. All of that provisional work was first archived and byte-verified under ignored `.shadowlab/vercel-proposal-backup/`, including the exact reversible tracked patch and 19 source/config files. Automatic approval review initially rejected an unbacked cleanup because it might discard uncommitted work; inspection and a verified archive resolved that concern, and the reversible cleanup succeeded. The checkout/branch was never reset or replaced. Its generated Python service environment was moved into the same private archive. Do not distribute that entire directory.
+
+### Actual commands and prerequisites
+
+The existing environment had Node.js **24.19.0**, npm **11.9.0**, Python **3.12**, project `.venv`, uv, system Chromium **`/usr/bin/chromium`**, and Docker **28.4.0**. A clean site installation/build needs only Node.js 22+ and npm; the browser helper additionally needs the project Python dependencies and compatible Chromium. The new app has a committed npm lockfile and its own minimal Next.js/React/icon dependencies, without Python or dashboard dependencies.
+
+```bash
+npm_config_cache=/workspace/.cache/npm npm --prefix apps/landing install --no-audit --no-fund
+NEXT_TELEMETRY_DISABLED=1 npm --prefix apps/landing run build
+npm --prefix apps/landing run typecheck
+python3 -m http.server 3100 --bind 127.0.0.1 --directory apps/landing/out
+# In another terminal:
+SHADOWLAB_CHROMIUM_PATH=/usr/bin/chromium .venv/bin/python scripts/validate-landing.py
+npm --prefix apps/web run typecheck
+.venv/bin/ruff check packages apps/api tests scripts
+git diff --check
+UV_CACHE_DIR=/workspace/.cache/uv uv build --wheel --out-dir .shadowlab/distribution
+.venv/bin/python scripts/check-bundle.py .shadowlab/distribution/shadowlab-0.1.0-py3-none-any.whl
+```
+
+The first command generated the site lockfile. Vercel and the added CI check install that committed lock with `npm ci`; build and typecheck are added to the existing CI workflow. A successful local run is not evidence that remote CI ran.
+
+The preserved native services were already running through `bash scripts/start.sh`: API 8000, website/dashboard 3000, trusted demo 3001. PostgreSQL was a disposable container created for this validation, using only synthetic credentials:
+
+```bash
+docker run -d --name shadowlab-vercel-pg --user postgres \
+  -e POSTGRES_USER=shadowlab -e POSTGRES_PASSWORD=shadowlab-local \
+  -e POSTGRES_DB=shadowlab -p 127.0.0.1:55433:5432 postgres:17-alpine
+docker exec shadowlab-vercel-pg pg_isready -U shadowlab
+SHADOWLAB_TEST_POSTGRES_URL=postgresql+psycopg://shadowlab:shadowlab-local@127.0.0.1:55433/shadowlab \
+SHADOWLAB_TEST_TARGET=http://127.0.0.1:3001 \
+SHADOWLAB_TEST_DASHBOARD=http://127.0.0.1:3000 \
+SHADOWLAB_CHROMIUM_PATH=/usr/bin/chromium .venv/bin/pytest -q
+```
+
+The final preserved application suite passed **72 tests, 0 failed, 0 skipped in 171.77 seconds**. This includes real UI identity tests and all three disposable patch verifications. The existing optional `test_postgres_persistence_if_configured` passed with the disposable PostgreSQL instance; its prerequisite/skip logic is unchanged. Nothing was removed or relabeled to obtain zero skips. The transient hosted PostgreSQL test belonged to the discarded multi-service proposal and is not counted as shipped coverage.
+
+`docker compose config --quiet` passed with the existing local API token read only into the child process environment, without printing or changing it. The daemon and PostgreSQL readiness checks passed. No new Docker images or full Compose stack were built for this static website. Docker remains a trusted development runtime, not VM-grade isolation for arbitrary untrusted repositories. Repository execution restrictions, target scope, scan budgets and cancellation policies are unchanged.
+
+### Results and sanitized evidence
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Landing production build | Passed; only `/` and framework not-found/error support routes | `.shadowlab/vercel-validation/landing-build-final.log`; `apps/landing/.next/server/app-paths-manifest.json` |
+| Static output contents | Passed; about 1.1 MiB, HTML/CSS/JS; no application API routes or runtime functions | `apps/landing/out/` (ignored generated artifact) |
+| Landing TypeScript | Passed | `.shadowlab/vercel-validation/landing-typecheck-final.log` |
+| Real Chromium website check | Passed **6 checks**: `/` 200; `/app`, `/demo`, `/api/v1/health`, `/api/v1/scans` 404; tabs/clipboard/install CTA/mobile/CSP assertions | `.shadowlab/vercel-validation/static-browser-csp.log`, `static-checks.json` |
+| Responsive screenshots | Passed and visually inspected; no credentials, findings or backend data | `.shadowlab/vercel-validation/static-desktop.png`, `static-mobile.png` |
+| Browser production policy | Passed with headers from the committed Vercel config applied locally; no eval, page errors, external page requests or runtime API calls | `scripts/validate-landing.py`; `static-checks.json` |
+| Preserved application suite | **72 passed, 0 failed, 0 skipped** | `.shadowlab/vercel-validation/preserved-suite.log` |
+| Preserved frontend TypeScript | Passed | `.shadowlab/vercel-validation/preserved-web-typecheck.log` |
+| Python lint / diff whitespace | Passed | Commands above |
+| Wheel packaging | Passed, **67 reviewed runtime assets**, no private/generated directories | `.shadowlab/vercel-validation/wheel-build.log`, `wheel-check.log` |
+| Original native UI/API availability | `/`, `/demo`, `/app`, `/api/v1/health` on port 3000 all **200** | Loopback HTTP checks; full suite |
+| Vercel account / cloud deployment | **Unavailable: CLI logged out; no deployment performed** | `.shadowlab/vercel-validation/vercel-account.log` |
+
+The browser helper asserts only this fixed loopback origin, rejects other page requests and follows no redirects when fetching static assets. It checks both install tabs, copies the install command to the clipboard, follows the demo CTA to `#install`, checks the mobile body width, and asserts there are no `/api/` calls or page errors. It creates no login state, credentials, database or scan. The configured Vercel CSP/security headers are applied locally to test browser behavior; this does **not** establish that the provider delivered them. Provider-side delivery, project import/settings, cloud build, deployed URL and actual availability still need verification after deployment.
+
+### Failures, corrections and blocked checks
+
+- The initial static browser probe failed its mobile overflow assertion. Extracting the landing styles omitted the original shared `pre` wrapping rule. Restoring that existing rule fixed long installation commands; the rebuilt export and complete final browser probe passed. Initial log: `.shadowlab/vercel-validation/static-browser.log`; final: `static-browser-csp.log`.
+- Before scope was narrowed, provisional `vercel dev --local` detected FastAPI/Next.js, passed bound health/protected request checks, and exposed development CSP/hydration timing problems. One initial focused database run failed because PostgreSQL had not become ready; its readiness-gated rerun passed. Those provisional dev/test results are historical diagnostics, not evidence of the final landing-only deployment. Their source and proposed fixes were archived and are absent from the shipped patch.
+- Vercel CLI **63.1.0** account check used `XDG_DATA_HOME=/workspace/.cache/vercel-data`, `XDG_CONFIG_HOME=/workspace/.cache/vercel-config`, `XDG_CACHE_HOME=/workspace/.cache/vercel-cache`, `VERCEL_TELEMETRY_DISABLED=1`, then `/workspace/.cache/shadowlab-vercel-cli/node_modules/.bin/vercel whoami`. It returned **Logged out**. No credentials were requested in chat, changed, generated for hosting, or written to Vercel.
+- The managed network denied reads of `https://vercel.com/docs/services` and `https://openapi.vercel.sh/vercel.json` with HTTP **403** during the provisional services investigation. CLI update checks also reported failure to fetch npm dist-tags. No network/security permissions were broadened. An authenticated provider deployment/build, hosted header delivery and remote CI were **not run**.
+
+The native product remains available on loopback port 3000 and the static site preview on loopback port 3100. No API/data service, database provisioning, deployment credential change, merge, release, registry publication or arbitrary repository execution is included in this increment. The temporary PostgreSQL validation container is removed after the suite; existing native services and saved validation evidence remain.

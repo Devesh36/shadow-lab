@@ -18,6 +18,8 @@ jobs:
       - run: uv run playwright install --with-deps chromium
       - run: uv run ruff check packages apps/api tests scripts
       - run: npm --prefix apps/web ci && npm --prefix examples/vulnerable-nextjs ci
+      - run: npm --prefix apps/landing ci && npm --prefix apps/landing run build && npm --prefix apps/landing run typecheck
+        env: {NEXT_TELEMETRY_DISABLED: '1'}
       - run: npm --prefix apps/web run build -- --webpack && npm --prefix examples/vulnerable-nextjs run build -- --webpack
         env: {NEXT_TELEMETRY_DISABLED: '1'}
       - run: |

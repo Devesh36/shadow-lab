@@ -65,6 +65,12 @@ The helper starts the API on port 8000, website on port 3000, and disposable dem
 
 Local persistence defaults to `.shadowlab/shadowlab.db`. `SHADOWLAB_DATABASE_URL` selects PostgreSQL; `SHADOWLAB_DATA_DIR` holds checkpoints, patches, and sanitized screenshots. A random API bearer token is generated in `.shadowlab/api-token` with mode 0600. The dashboard uses a server-side proxy; it never sends that token to the browser. The API exposes OpenAPI at `/docs`; protected operations require the token. This is a single-user, local dashboard. Public hosting requires an authenticated reverse proxy and a different deployment design.
 
+## Deploy the landing page on Vercel
+
+Import this repository and select the branch containing `apps/landing`. Set **Root Directory to `apps/landing`**, framework **Next.js**, build command **`npm run build`**, and output directory **`out`**. Then select **Deploy**. No application environment variables or secrets are required.
+
+This separate app exports only the product website. Its demo links lead to local installation instructions; the API, dashboard, database and investigation engine stay in the local product. See [Vercel setup and local preview](docs/vercel.md).
+
 ## Docker development with PostgreSQL
 
 Docker Engine and Compose are required. Generate the local API token securely, then build and start:
