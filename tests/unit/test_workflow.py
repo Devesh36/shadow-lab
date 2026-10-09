@@ -52,3 +52,23 @@ async def test_cancellation_before_first_task_step(store):
     await asyncio.gather(service.tasks[scan["id"]], return_exceptions=True)
     assert store.get("scan", scan["id"])["status"] == "cancelled"
     assert not store.list("execution", scan["id"])
+
+
+async def test_scan_deadline_leaves_requested_browser_coverage_inconclusive(store, monkeypatch):
+    async def scanner(root):
+        return {'status': 'completed', 'findings': []}
+    async def expired(self, state):
+        store.put('finding', {'category': 'bola', 'state': 'TESTING',
+                  'browser': {'status': 'running', 'verdict': 'INCONCLUSIVE'}}, parent_id=self.scan_id)
+        raise TimeoutError('Scan deadline expired during browser validation')
+    monkeypatch.setattr('packages.agents.workflow.semgrep', scanner)
+    monkeypatch.setattr('packages.agents.workflow.osv', scanner)
+    monkeypatch.setattr(Workflow, 'validate', expired)
+    service = Service(store)
+    repository = service.add_repository(RepositoryCreate(path='examples/vulnerable-nextjs'))
+    scan = service.create_scan(ScanCreate(repository_id=repository['id']))
+    await Workflow(store, scan['id']).run()
+    assert store.get('scan', scan['id'])['status'] == 'failed'
+    interrupted = next(f for f in store.list('finding', scan['id']) if f.get('browser'))
+    assert interrupted['state'] == 'INCONCLUSIVE'
+    assert interrupted['browser']['status'] == 'timeout' and not interrupted['browser']['evidence']

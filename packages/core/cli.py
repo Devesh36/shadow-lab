@@ -27,6 +27,7 @@ def main():
     scan.add_argument("--authorize", action="store_true", help="Explicit permission to test this exact origin")
     scan.add_argument("--approve", action="store_true", help="Approve bounded execution against a trusted app")
     scan.add_argument("--demo-fixtures", action="store_true", help="Use only the shipped demo's synthetic tokens")
+    scan.add_argument("--browser", action="store_true", help="Validate the reviewed local demo with three isolated browser identities")
     commands.add_parser("findings")
     export = commands.add_parser("report")
     export.add_argument("--scan-id")
@@ -57,7 +58,7 @@ def main():
                     settings.fixture = SyntheticFixture()
                 store.save_settings(settings)
             scan = service.create_scan(ScanCreate(repository_id=repo["id"], target=args.target,
-                                                  dynamic=bool(args.target)))
+                                                  dynamic=bool(args.target), browser=args.browser))
             asyncio.run(Workflow(store, scan["id"]).run())
             result = store.get("scan", scan["id"])
             print(json.dumps(result, indent=2))

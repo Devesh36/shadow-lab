@@ -40,6 +40,7 @@ services:
       retries: 20
   api:
     <<: *hardening
+    init: true
     build:
       context: .
       dockerfile: infrastructure/docker/api.Dockerfile

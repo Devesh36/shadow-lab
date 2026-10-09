@@ -43,3 +43,19 @@ def test_postgres_persistence_if_configured(monkeypatch, tmp_path):
     reopened = Store(url)
     assert reopened.get("integration-test", saved["id"])["evidence"]["status"] == 403
     reopened.engine.dispose()
+
+
+def test_browser_evidence_requires_auth_and_persisted_artifact(store):
+    from uuid import uuid4
+    artifact = str(uuid4())
+    folder = store.data_dir / 'browser-evidence'
+    folder.mkdir()
+    (folder / f'{artifact}.png').write_bytes(b'\x89PNG\r\n\x1a\n')
+    headers = {'Authorization': f'Bearer {api_token(store.data_dir)}'}
+    with TestClient(create_app(store)) as client:
+        assert client.get(f'/api/v1/browser-evidence/{artifact}').status_code == 401
+        assert client.get(f'/api/v1/browser-evidence/{artifact}', headers=headers).status_code == 404
+        store.put('browser-artifact', {'description': 'Sanitized projection'}, id=artifact)
+        response = client.get(f'/api/v1/browser-evidence/{artifact}', headers=headers)
+        assert response.status_code == 200 and response.headers['content-type'] == 'image/png'
+        assert client.get('/api/v1/browser-evidence/invalid', headers=headers).status_code == 404

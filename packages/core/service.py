@@ -25,8 +25,11 @@ class Service:
         return self.store.put("repository", {"path": str(path), "name": request.name or path.name})
 
     def create_scan(self, request: ScanCreate):
-        if not self.store.get("repository", request.repository_id):
+        repo = self.store.get("repository", request.repository_id)
+        if not repo:
             raise ValueError("Repository does not exist")
+        if request.browser and not request.dynamic:
+            raise ValueError("Browser validation requires a dynamic trusted-demo scan")
         if request.dynamic:
             if not request.target:
                 raise ValueError("Dynamic scans require a target")
@@ -37,6 +40,9 @@ class Service:
                 raise PolicyDenied("Authorize and approve the exact target origin in Settings first")
             if settings.sandbox_mode != "trusted-local":
                 raise PolicyDenied("Dynamic scans require trusted-local mode")
+            if request.browser:
+                from packages.execution.demo_browser import require_demo
+                require_demo(Path(repo["path"]), settings, str(request.target))
         if sum(not task.done() for task in self.tasks.values()) >= 2:
             raise ValueError("At most two concurrent scans are supported")
         return self.store.put("scan", {**request.model_dump(mode="json"), "status": "queued", "stage": "queued"})

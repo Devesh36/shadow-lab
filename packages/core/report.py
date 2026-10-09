@@ -22,6 +22,9 @@ def report(store, scan_id, format="markdown"):
         for ref in finding["sources"]:
             text.append(f"Source: `{ref['file']}:{ref['line']}`")
         text += ["", "```json", json.dumps(finding["evidence"], indent=2), "```", ""]
+        if finding.get("browser"):
+            text += ["### Browser authorization validation", "", "```json",
+                     json.dumps(finding["browser"], indent=2), "```", ""]
         for patch in store.list("patch", finding["id"]):
             text += ["### Proposed patch (developer review required)", "", "```diff", patch["diff"], "```", "",
                      "Regression result:", "```json", json.dumps(patch["verification"], indent=2), "```", ""]

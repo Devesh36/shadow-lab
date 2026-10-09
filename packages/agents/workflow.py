@@ -5,6 +5,7 @@ from typing import TypedDict
 
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph import END, START, StateGraph
+from langgraph.errors import NodeCancelledError
 
 from packages.agents.hypotheses import generate
 from packages.agents.llm import prioritize
@@ -127,12 +128,48 @@ class Workflow:
                 self.store.event(self.scan_id, "validation", "Test did not complete", error_type=type(exc).__name__)
             self.store.put("finding", {"state": status, "evidence": evidence, "validation": explanation}, id=id)
             self.store.event(self.scan_id, "evidence", explanation, finding_id=id, state=status)
+        if self.scan.get("browser"):
+            from packages.execution.demo_browser import validate_browser
+            self.stage("browser_validation", "Checking three isolated synthetic demo identities through the real UI")
+            for id in state["findings"]:
+                if self.store.get("finding", id)["category"] in ("authentication", "bola", "exposure"):
+                    self.store.put("finding", {"state": FindingState.TESTING,
+                        "browser": {"status": "running", "verdict": FindingState.INCONCLUSIVE}}, id=id)
+            results = await validate_browser(policy, self.cancelled, self.settings.categories,
+                                            self.store.data_dir / "browser-evidence")
+            self.store.put("scan", {"browser_results": results}, id=self.scan_id)
+            for id in state["findings"]:
+                finding = self.store.get("finding", id)
+                if finding["category"] in results:
+                    result = results[finding["category"]]
+                    # Browser validation cannot inherit a raw-HTTP confirmation after incomplete coverage.
+                    for execution in result["evidence"]:
+                        self.store.put("execution", execution, parent_id=self.scan_id)
+                    if result.get("artifact_id"):
+                        self.store.put("browser-artifact", {"description": "Safe demo UI projection",
+                                       "category": finding["category"]}, id=result["artifact_id"], parent_id=id)
+                    self.store.put("finding", {"browser": result, "state": result["verdict"],
+                        "validation": result["validation"] + " (browser: " + result["status"] + ")"}, id=id)
+                    self.store.event(self.scan_id, "browser_evidence", result["validation"],
+                                     finding_id=id, browser_status=result["status"], state=result["verdict"])
         return {}
 
     async def report(self, state):
         self.stage("reporting", "Persisting findings and completing the investigation")
         self.store.put("scan", {"status": "completed", "stage": "completed"}, id=self.scan_id)
         return {}
+
+    def failed(self, exc):
+        self.store.put("scan", {"status": "failed", "stage": "failed", "error": type(exc).__name__}, id=self.scan_id)
+        for finding in self.store.list("finding", self.scan_id):
+            if finding["state"] == FindingState.TESTING:
+                self.store.put("finding", {"state": FindingState.INCONCLUSIVE,
+                    "validation": "Validation could not complete: " + type(exc).__name__,
+                    **({"browser": {"status": "timeout" if isinstance(exc, TimeoutError) else "failed",
+                                    "verdict": FindingState.INCONCLUSIVE, "validation": "Browser coverage incomplete",
+                                    "error_type": type(exc).__name__, "evidence": [], "test_count": 0}}
+                       if finding.get("browser") else {})}, id=finding["id"])
+        self.store.event(self.scan_id, "failed", "Investigation failed", error_type=type(exc).__name__)
 
     async def run(self):
         self.store.put("scan", {"status": "running"}, id=self.scan_id)
@@ -147,16 +184,22 @@ class Workflow:
                 async with asyncio.timeout(self.settings.scan_timeout_seconds):
                     await graph.compile(checkpointer=saver).ainvoke({}, {"configurable": {"thread_id": self.scan_id},
                                                                         "recursion_limit": 12})
-        except asyncio.CancelledError:
+        except (asyncio.CancelledError, NodeCancelledError) as exc:
+            # LangGraph wraps event-driven node cancellation; preserve the operator's cancellation verdict.
+            if isinstance(exc, NodeCancelledError) and not self.cancelled.is_set():
+                self.failed(exc)
+                return
             self.store.put("scan", {"status": "cancelled", "stage": "cancelled"}, id=self.scan_id)
             for finding in self.store.list("finding", self.scan_id):
                 if finding["state"] == FindingState.TESTING:
                     self.store.put("finding", {"state": FindingState.INCONCLUSIVE,
-                        "validation": "Scan cancelled during validation"}, id=finding["id"])
+                        "validation": "Scan cancelled during validation",
+                        **({"browser": {"status": "cancelled", "verdict": FindingState.INCONCLUSIVE,
+                                        "validation": "Browser coverage incomplete", "evidence": [], "test_count": 0}}
+                           if finding.get("browser") else {})}, id=finding["id"])
             self.store.event(self.scan_id, "cancelled", "Scan cancelled by operator")
         except Exception as exc:
-            self.store.put("scan", {"status": "failed", "stage": "failed", "error": type(exc).__name__}, id=self.scan_id)
-            self.store.event(self.scan_id, "failed", "Investigation failed", error_type=type(exc).__name__)
+            self.failed(exc)
 
 
 def classify(category, evidence):

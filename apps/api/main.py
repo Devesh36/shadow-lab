@@ -154,6 +154,19 @@ def create_app(store=None):
         record = get("screenshot", id)
         return FileResponse(store.data_dir / "screenshots" / f"{record['id']}.png", media_type="image/png")
 
+    @app.get("/api/v1/browser-evidence/{id}", dependencies=protected)
+    def browser_screenshot(id: str):
+        from uuid import UUID
+        try:
+            safe_id = str(UUID(id))
+        except ValueError:
+            raise HTTPException(404, "Browser artifact not found") from None
+        get("browser-artifact", safe_id)
+        path = store.data_dir / "browser-evidence" / f"{safe_id}.png"
+        if not path.is_file():
+            raise HTTPException(404, "Browser artifact file unavailable")
+        return FileResponse(path, media_type="image/png")
+
     @app.get("/api/v1/findings/{id}/patch", dependencies=protected)
     def patch(id: str):
         get("finding", id)

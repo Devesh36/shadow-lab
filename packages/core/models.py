@@ -104,6 +104,7 @@ class ScanCreate(BaseModel):
     repository_id: str
     target: HttpUrl | None = None
     dynamic: bool = False
+    browser: bool = False
 
 
 class TestPlan(BaseModel):
