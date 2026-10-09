@@ -59,3 +59,60 @@ def test_browser_evidence_requires_auth_and_persisted_artifact(store):
         response = client.get(f'/api/v1/browser-evidence/{artifact}', headers=headers)
         assert response.status_code == 200 and response.headers['content-type'] == 'image/png'
         assert client.get('/api/v1/browser-evidence/invalid', headers=headers).status_code == 404
+
+
+def test_guided_demo_requires_approval_and_cannot_select_external_target(store, monkeypatch):
+    headers = {'Authorization': f'Bearer {api_token(store.data_dir)}'}
+    with TestClient(create_app(store)) as client:
+        assert client.post('/api/v1/demo/start', json={'approved': True}).status_code == 401
+        for payload in ({}, {'approved': False}, {'approved': True, 'target': 'https://example.com'}):
+            assert client.post('/api/v1/demo/start', json=payload, headers=headers).status_code == 422
+        monkeypatch.setenv('SHADOWLAB_DEMO_ORIGIN', 'https://example.com')
+        assert client.post('/api/v1/demo/start', json={'approved': True}, headers=headers).status_code == 403
+        assert store.list('scan') == []
+
+
+def test_guided_demo_has_ephemeral_scope_and_preserves_operator_settings(store, monkeypatch):
+    from packages.agents.workflow import Workflow
+    original = store.settings().model_dump(mode='json')
+    observed = []
+    async def complete(workflow):
+        observed.append(workflow.settings.model_dump(mode='json'))
+        workflow.store.put('scan', {'status': 'completed', 'stage': 'completed'}, id=workflow.scan_id)
+    monkeypatch.setattr(Workflow, 'run', complete)
+    headers = {'Authorization': f'Bearer {api_token(store.data_dir)}'}
+    with TestClient(create_app(store)) as client:
+        first = client.post('/api/v1/demo/start', json={'approved': True}, headers=headers)
+        second = client.post('/api/v1/demo/start', json={'approved': True}, headers=headers)
+        assert first.status_code == second.status_code == 202
+        assert first.json()['id'] != second.json()['id']
+        assert first.json()['demo'] is True
+    assert store.settings().model_dump(mode='json') == original
+    assert len(observed) == 2
+    assert observed[0]['targets'][0]['url'] == 'http://127.0.0.1:3001/'
+    assert observed[0]['llm_enabled'] is False
+    assert observed[0]['request_budget'] == 150
+
+
+async def test_api_shutdown_awaits_inflight_patch_cleanup(store, monkeypatch):
+    import asyncio
+    import httpx
+    from packages.remediation import patches
+    started, cleaned = asyncio.Event(), asyncio.Event()
+    async def pending_patch(*args):
+        started.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            await asyncio.sleep(.1)
+            cleaned.set()
+    monkeypatch.setattr(patches, 'propose', pending_patch)
+    finding = store.put('finding', {'title': 'Synthetic pending patch'})
+    app = create_app(store)
+    headers = {'Authorization': f'Bearer {api_token(store.data_dir)}'}
+    async with app.router.lifespan_context(app):
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
+            task = asyncio.create_task(client.post(f"/api/v1/findings/{finding['id']}/propose-fix", headers=headers))
+            await asyncio.wait_for(started.wait(), 3)
+    assert task.cancelled() and cleaned.is_set()
+    assert not app.state.patch_tasks

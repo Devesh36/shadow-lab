@@ -12,6 +12,7 @@ class Service:
         self.store = store
         self.tasks: dict[str, asyncio.Task] = {}
         self.cancellations: dict[str, asyncio.Event] = {}
+        self.demo_settings = {}
 
     def add_repository(self, request: RepositoryCreate):
         allowed = Path(os.getenv("SHADOWLAB_REPOSITORY_ROOT", ".")).resolve()
@@ -24,7 +25,7 @@ class Service:
                 return repo
         return self.store.put("repository", {"path": str(path), "name": request.name or path.name})
 
-    def create_scan(self, request: ScanCreate):
+    def create_scan(self, request: ScanCreate, settings=None):
         repo = self.store.get("repository", request.repository_id)
         if not repo:
             raise ValueError("Repository does not exist")
@@ -33,7 +34,7 @@ class Service:
         if request.dynamic:
             if not request.target:
                 raise ValueError("Dynamic scans require a target")
-            settings = self.store.settings()
+            settings = settings or self.store.settings()
             target_origin = origin(str(request.target))
             target = next((t for t in settings.targets if origin(str(t.url)) == target_origin), None)
             if not target or not target.authorized or not target.approved:
@@ -50,9 +51,23 @@ class Service:
     def start(self, scan_id):
         cancellation = asyncio.Event()
         self.cancellations[scan_id] = cancellation
-        task = asyncio.create_task(Workflow(self.store, scan_id, cancellation).run())
+        task = asyncio.create_task(Workflow(self.store, scan_id, cancellation, self.demo_settings.get(scan_id)).run())
         self.tasks[scan_id] = task
         task.add_done_callback(lambda _: self.cancellations.pop(scan_id, None))
+        task.add_done_callback(lambda _: self.demo_settings.pop(scan_id, None))
+
+    def create_demo(self, browser=False):
+        from packages.core.demo_scope import demo_settings
+        from packages.execution.demo_browser import DEMO, require_demo
+        settings = demo_settings(os.getenv("SHADOWLAB_DEMO_ORIGIN", "http://127.0.0.1:3001"))
+        target = str(settings.targets[0].url)
+        require_demo(DEMO, settings, target)
+        repo = self.add_repository(RepositoryCreate(path=str(DEMO), name="ShadowLab synthetic demo"))
+        scan = self.create_scan(ScanCreate(repository_id=repo["id"], target=target, dynamic=True, browser=browser), settings)
+        self.store.put("scan", {"demo": True}, id=scan["id"])
+        self.demo_settings[scan["id"]] = settings
+        self.start(scan["id"])
+        return self.store.get("scan", scan["id"])
 
     def cancel(self, scan_id):
         task = self.tasks.get(scan_id)

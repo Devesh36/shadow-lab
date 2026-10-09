@@ -1,6 +1,6 @@
 # Validation evidence
 
-The current browser increment is documented below, including exact commands, sanitized artifacts, corrections, and scope. The first section preserves the original V1 results.
+The browser identity and guided REPL/distribution increments are documented below, including exact commands, sanitized artifacts, corrections, and scope. The first section preserves the original V1 results.
 
 ## Original V1 validation
 
@@ -147,3 +147,100 @@ The initial route callback accepted Playwright's optional second argument as its
 Intentional negative tests verify unsupported Chromium setup, exhausted budgets, compressed/oversized responses, timeout failure, stale identities, and out-of-scope redirects. Their expected outcomes are **blocked/timeout/unsupported and INCONCLUSIVE**, with cleanup, rather than a finding or passed patch. A teardown error also invalidates completed browser results and keeps a patch unverified; a targeted fault-injection regression checks that cleanup failure cannot pass. Scan deadline failure now marks active browser findings inconclusive instead of leaving them testing. Native and Compose browser contexts and patched fixture processes terminate after their workflows; patch worktrees and sanitized receipts remain for review.
 
 The scans were executed with the feature increment uncommitted, so their source commit field names the preserved baseline. The reviewed fixture checksums and final feature-branch diff identify the tested source changes.
+
+
+## Guided REPL, installation and landing page increment (2026-10-09)
+
+The implemented V1 and browser validation remain on `feature/browser-identity-validation`. The dashboard moved intact to `/app`; `/` is a Next.js landing page and `/demo` starts a guided investigation. The new `shadow repl` (`shadow Repl` also accepted) menu launches a checksum-reviewed, explicitly enumerated package bundle in private local state. It never runs a repository from the caller's working directory. The original `shadowlab` commands remain available.
+
+Choosing Demo or selecting Start demo explicitly authorizes only the bundled loopback synthetic fixture. The authenticated demo API rejects missing/false approval, unexpected request fields and non-loopback origins. Each demo scan uses ephemeral settings with **150 requests, 5 requests/second, 10-second request deadline and 180-second scan deadline**. Saved operator settings remain unchanged; LLM and dependency-network calls are disabled for this guided run. Chromium is optional unless browser validation is selected. Existing policy, redaction, browser identity separation, redirect rejection and patch-review restrictions remain in force. Patch verification uses the same scoped demo limits, with its existing 120-second overall cap.
+
+The launcher needs macOS/Linux, Python 3.12+, Node.js 22+, npm and Git. First preparation fetches frozen npm dependencies and production builds both apps; subsequent launches reuse that content-addressed bundle. Each launch gets three distinct IPv4 loopback ports, a fresh API token with mode 0600 and separate private SQLite state. Child services do not inherit the operator's database URL, API token, LLM key or cloud credentials. Managed proxy/CA settings are retained for dependency installation. Cleanup stops the owned service groups; the API lifespan now awaits cancelled patch tasks so their separate disposable process groups finish cleanup before the console reports completion. Reports and worktrees remain for review.
+
+### Commands and observed results
+
+All commands below ran in `/workspace/shadow-lab`, except the installed-package helper deliberately launches the console from a fresh temporary directory. `UV_CACHE_DIR=/workspace/.cache/uv` was set for uv commands. Evidence and dependency caches are ignored by Git.
+
+```bash
+uv sync --locked
+.venv/bin/python scripts/update-bundle.py
+.venv/bin/ruff check packages apps/api tests scripts
+NEXT_TELEMETRY_DISABLED=1 npm --prefix apps/web run build -- --webpack
+npm --prefix apps/web run typecheck
+uv build --wheel --out-dir .shadowlab/distribution
+.venv/bin/python scripts/check-bundle.py .shadowlab/distribution/shadowlab-0.1.0-py3-none-any.whl
+
+UV_TOOL_DIR=/workspace/shadow-lab/.shadowlab/uv-tools \
+UV_TOOL_BIN_DIR=/workspace/shadow-lab/.shadowlab/uv-bin \
+  uv tool install --reinstall --python 3.12 .shadowlab/distribution/shadowlab-0.1.0-py3-none-any.whl
+SHADOWLAB_HOME=/workspace/shadow-lab/.shadowlab/repl-final \
+  .venv/bin/python scripts/smoke-installed.py .shadowlab/uv-bin/shadow
+SHADOWLAB_HOME=/workspace/shadow-lab/.shadowlab/repl-final \
+  .venv/bin/python scripts/validate-repl-cancel.py .shadowlab/uv-bin/shadow
+```
+
+The smoke helper drives `demo`, `report`, `quit` through the installed CLI. It requires actual completed investigations and confirmed authentication/BOLA/exposure findings, checks report redaction, checks that caller state was untouched, and verifies **all three launched service ports are closed**. The cancellation helper uses pipes and sends SIGINT directly to the console after observing a live Node process in its disposable patch worktree; it requires the cancelled message, terminated patch process and all three service ports closed. Browser installation was also exercised by typing `demo browser` through the wheel-installed REPL with `SHADOWLAB_CHROMIUM_PATH=/usr/bin/chromium`.
+
+For the full suite, the original native services were rebuilt/restarted with `bash scripts/start.sh`, and a disposable PostgreSQL instance was supplied:
+
+```bash
+docker run -d --name shadowlab-repl-pg --user postgres \
+  -e POSTGRES_USER=shadowlab -e POSTGRES_PASSWORD=shadowlab-local \
+  -e POSTGRES_DB=shadowlab -p 127.0.0.1:55432:5432 postgres:17-alpine
+SHADOWLAB_TEST_POSTGRES_URL=postgresql+psycopg://shadowlab:shadowlab-local@127.0.0.1:55432/shadowlab \
+SHADOWLAB_TEST_TARGET=http://127.0.0.1:3001 \
+SHADOWLAB_TEST_DASHBOARD=http://127.0.0.1:3000 \
+SHADOWLAB_CHROMIUM_PATH=/usr/bin/chromium .venv/bin/pytest -q
+```
+
+The final suite passed **72 tests, 0 failed, 0 skipped** in **166.44 seconds** after the shutdown regression was added. Before that regression, it passed **71 tests, zero skipped**. The initial no-PostgreSQL unit/API run had **60 passed, 1 skipped, 9 deselected**; the skipped test was `test_postgres_persistence_if_configured`, the same optional database coverage described in the earlier increments. It passed once the disposable PostgreSQL service was supplied. Nothing was relabeled or silently removed to eliminate skips.
+
+The existing full browser E2E cases rerun real UI actions for anonymous, Alice and Bob, then repeat identical assertions against all three demo patch templates. New tests cover installed-console startup outside the checkout, package isolation, stripping operator credentials, setup failure and interruption cleanup, stop/restart, EOF, active-scan cancellation, API approval/scope/settings preservation, pending patch cleanup, landing install tabs/copy, responsive layouts, real guided scan navigation, and backend-unavailable feedback. The existing context separation, logout/relogin, repeated browser runs, budget/deadline failures, unsupported Chromium and out-of-scope redirect regressions remain included.
+
+### Docker and Homebrew checks
+
+The managed local Docker daemon was checked with:
+
+```bash
+env -u DOCKER_HOST -u DOCKER_CONTEXT -u DOCKER_TLS \
+  -u DOCKER_TLS_VERIFY -u DOCKER_CERT_PATH \
+  docker --host=unix:///var/run/docker.sock info --format '{{.ServerVersion}} {{.Driver}}'
+BUILDX_CONFIG=/workspace/.cache/buildx docker build \
+  --secret id=custom-ca,src=/usr/local/share/ca-certificates/environment-proxy-ca.crt \
+  -f infrastructure/docker/web.Dockerfile -t shadowlab-landing-check .
+docker run -d --name shadowlab-landing-web --network none --read-only \
+  --cap-drop ALL --security-opt no-new-privileges --pids-limit 256 \
+  --memory 1g --cpus 2 --tmpfs /tmp:rw,nosuid,size=128m shadowlab-landing-check
+docker exec shadowlab-landing-web node -e 'async function main(){for(const p of ["/","/demo","/app"]){const r=await fetch("http://127.0.0.1:3000"+p);const body=await r.text();console.log(p,r.status,body.includes("ShadowLab"));if(!r.ok||!body.includes("ShadowLab"))throw new Error("route failed");}}main().catch(e=>{console.error(e.name);process.exitCode=1})'
+```
+
+The daemon was Docker **28.4.0**, `vfs`. The web image built successfully with TLS verification enabled; the updated npm build step mounts the optional public CA only during installation, without retaining it in the image. The non-root `node` runtime had read-only root, no network egress, all capabilities dropped, no-new-privileges, 1 GiB memory, 256 processes and 2 CPUs. All three routes returned **200** with ShadowLab content. `docker compose config --quiet` also passed, with the existing token read into process environment without printing or rotating it. The prior complete Compose/API/PostgreSQL browser/patch results remain above; that entire stack was not rebuilt in this increment. Compose is still a trusted development runtime, **not VM-grade isolation for untrusted repositories**.
+
+Homebrew is not installed in this Linux workspace. Ruby syntax was checked in a restricted temporary container after copying the public formula to `/tmp/shadowlab-formula-check/shadowlab.rb` with read permissions:
+
+```bash
+docker run --rm --network none --read-only --cap-drop ALL \
+  --security-opt no-new-privileges --pids-limit 32 --memory 128m \
+  --mount type=bind,src=/tmp/shadowlab-formula-check/shadowlab.rb,dst=/formula.rb,readonly \
+  ruby:3.4-alpine ruby -c /formula.rb
+```
+
+Result: **Syntax OK**. The first direct workspace bind was unreadable to the nested container; retry used the readable temporary copy. Native `brew tap`, install, test and upgrade remain **not verified here**. `.github/workflows/homebrew.yml` adds a macOS HEAD installation/test job; configuration is not proof of a completed run. The unauthenticated GitHub repository page returned HTTP 200. No stable Homebrew release, PyPI publication, release publication or external site deployment was performed. The current repository acts as a custom tap; uv installs from its explicitly named feature branch.
+
+### Evidence, corrections and limits
+
+- `.shadowlab/repl-suite.log`: initial full run **69 passed, 1 failed**. The landing test read a response body after a full navigation; Chromium had discarded it. The corrected test correlates the resulting scan URL with an authenticated scan read instead. The focused rerun passed.
+- `.shadowlab/repl-suite-final.log`: **71 passed, zero skipped** before adding the pending-patch shutdown regression.
+- `.shadowlab/repl-suite-current.log`: final suite after the shutdown change, **72 passed, 0 failed, 0 skipped**.
+- `.shadowlab/repl-final.log` and `repl-smoke-current.log`: real installed-package transcripts and service-port/redaction assertions. Latest smoke scan `74994caa-28bb-4bc4-a4ba-99900dc0da2a` is saved under `.shadowlab/repl-final/runs/4d5c3878ebf44296a926c1630f1623dd/`.
+- `.shadowlab/repl-final/runs/b8744e5e7c324b1f9a4c526d54bba9d5/report-e281c151-b74c-4d8c-9a80-c31412c62852.md`: installed-wheel investigation with confirmed authentication/BOLA/exposure and header checks.
+- `.shadowlab/repl-validation/runs/e31671ccb88344239c0df4f37c71cd7b/report-280384fe-5f5a-4930-a585-a47eeef90a3c.md`: first wheel-installed HTTP scan plus explicitly selected authentication patch. Patch verification passed **4 checks**; `review_required=true`, `merged=false`.
+- `.shadowlab/repl-validation/runs/88680a2f4a464532ae434afe4d8a9005/report-f69e7101-8a8c-4605-a47a-8ea39932f1ea.md`: installed REPL browser investigation. Authentication/BOLA/exposure each completed with **3/5/3 UI assertions**, all confirmed; sanitized receipts and screenshots are in this run's `browser-evidence/`.
+- `.shadowlab/repl-cancel.log`: initial cancellation probe failed because its cleanup assertion was not satisfied at the instant it checked; subsequent inspection found no remaining patch process. The probe now requires an actual Node patch process, rather than incidental Git setup, and the API explicitly awaits pending patch task cleanup.
+- `.shadowlab/repl-patch-current.log`: latest wheel installed outside the checkout, actual demo scan plus authentication patch **passed 4 checks**, awaiting review. Its sanitized report is `.shadowlab/repl-final/runs/b48d10a68c514a039a914597b1ba049f/report-9f6eb3ca-353e-4689-982c-be0c6e931e85.md`.
+- `.shadowlab/repl-cancel-final.log`: actual live patch cancellation **passed**, with **1 observed patch application process terminated and 3 local service ports closed**. Its private run is `.shadowlab/repl-final/runs/605d79baacb24b2782a50639b1e4bdcc/`. No cancelled experiment is reported as a verified patch.
+- `.shadowlab/landing-desktop.png`, `landing-mobile.png`: actual browser screenshots, visually inspected. The terminal on the landing page is explicitly labeled an illustration.
+- `.shadowlab/landing-docker-build.log`: current web image build; `.shadowlab/landing-runtime-final.log`: current native service startup.
+- `.shadowlab/distribution/shadowlab-0.1.0-py3-none-any.whl`: tested distribution. All **67** enumerated runtime assets were present; no `.env`, private state, Git data, bytecode, `node_modules` or `.next` was included.
+
+Only sanitized reports/receipts/screenshots are shareable evidence. Private run directories also contain mode-0600 API tokens and operational databases; never distribute a whole run directory. No cookie state, bearer token or sensitive response value is printed in the console or exported report. Git ignores all validation state. Optional missing tools and incomplete browser checks remain visible. macOS launcher/Homebrew installation, hosted provider calls and a publicly deployed landing page were not validated in this workspace. Arbitrary untrusted code execution, generalized remediation and wider scanning remain outside this increment.

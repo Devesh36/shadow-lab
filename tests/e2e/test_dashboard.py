@@ -17,7 +17,7 @@ async def test_real_dashboard_registers_repository_and_runs_analysis():
             page = await browser.new_page(viewport={"width": 1440, "height": 1000})
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
-            await page.goto(url)
+            await page.goto(url.rstrip('/') + '/app')
             await page.get_by_text("API connected", exact=False).wait_for()
             await page.get_by_role("button", name="Repositories", exact=True).click()
             await page.get_by_role("button", name="Register repository", exact=True).click()

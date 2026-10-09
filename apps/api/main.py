@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from typing import Literal
 
 from fastapi import Depends, FastAPI, Header, HTTPException
+from pydantic import BaseModel, ConfigDict
 from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 
 from packages.core.auth import api_token
@@ -15,11 +16,18 @@ from packages.db.store import Store
 from packages.policies.engine import PolicyDenied
 
 
+class DemoStart(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    approved: Literal[True]
+    browser: bool = False
+
+
 def create_app(store=None):
     store = store or Store()
     store.initialize()
     service = Service(store)
     token = api_token(store.data_dir)
+    patch_tasks = set()
 
     @asynccontextmanager
     async def lifespan(app):
@@ -30,10 +38,18 @@ def create_app(store=None):
                 store.put("scan", {"status": "interrupted", "stage": "interrupted"}, id=scan["id"])
         yield
         await service.close()
+        # Uvicorn cancels pending requests after its graceful deadline. Await their cleanup
+        # before exiting the event loop, including a disposable patch's separate process group.
+        pending = [task for task in patch_tasks if not task.done()]
+        for task in pending:
+            if not task.cancelling():
+                task.cancel()
+        await asyncio.gather(*pending, return_exceptions=True)
 
     app = FastAPI(title="ShadowLab", version="0.1.0", lifespan=lifespan)
     app.state.store = store
     app.state.service = service
+    app.state.patch_tasks = patch_tasks
     patch_lock = asyncio.Lock()
 
     def authenticate(authorization: str | None = Header(default=None)):
@@ -81,6 +97,15 @@ def create_app(store=None):
     def scans():
         return store.list("scan")
 
+    @app.post("/api/v1/demo/start", dependencies=protected, status_code=202)
+    async def start_demo(request: DemoStart):
+        try:
+            return service.create_demo(request.browser)
+        except PolicyDenied as exc:
+            raise HTTPException(403, str(exc)) from None
+        except (ValueError, OSError) as exc:
+            raise HTTPException(422, str(exc)) from None
+
     @app.get("/api/v1/scans/{id}", dependencies=protected)
     def scan(id: str):
         return {**get("scan", id), "findings": store.list("finding", id)}
@@ -127,7 +152,12 @@ def create_app(store=None):
             if patch_lock.locked():
                 raise HTTPException(409, "A patch verification is already running")
             async with patch_lock:
-                return await propose(store, finding)
+                task = asyncio.current_task()
+                patch_tasks.add(task)
+                try:
+                    return await propose(store, finding)
+                finally:
+                    patch_tasks.discard(task)
         except (ValueError, OSError) as exc:
             raise HTTPException(422, str(exc)) from None
 

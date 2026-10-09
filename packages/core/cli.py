@@ -6,17 +6,8 @@ import shutil
 import sys
 from pathlib import Path
 
-from packages.agents.workflow import Workflow
-from packages.analyzers.nextjs import discover
-from packages.core.auth import api_token
-from packages.core.models import RepositoryCreate, ScanCreate, Settings, SyntheticFixture, Target
-from packages.core.report import report
-from packages.core.service import Service
-from packages.db.store import Store
-
-
 def main():
-    parser = argparse.ArgumentParser(prog="shadowlab", description="Evidence-driven application security testing")
+    parser = argparse.ArgumentParser(prog="shadow", description="Evidence-driven application security testing")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("init")
     analyze = commands.add_parser("analyze")
@@ -33,7 +24,22 @@ def main():
     export.add_argument("--scan-id")
     export.add_argument("--format", choices=["markdown", "json"], default="markdown")
     commands.add_parser("doctor")
-    args = parser.parse_args()
+    commands.add_parser("repl", help="Open the guided ShadowLab console")
+    argv = sys.argv[1:]
+    if argv and argv[0].casefold() == "repl":
+        argv[0] = "repl"
+    args = parser.parse_args(argv)
+    if args.command == "repl":
+        from packages.core.repl import run
+        run()
+        return
+    from packages.agents.workflow import Workflow
+    from packages.analyzers.nextjs import discover
+    from packages.core.auth import api_token
+    from packages.core.models import RepositoryCreate, ScanCreate, Settings, SyntheticFixture, Target
+    from packages.core.report import report
+    from packages.core.service import Service
+    from packages.db.store import Store
     store = Store()
     store.initialize()
     try:
@@ -81,3 +87,7 @@ def main():
                               "mode": store.settings().sandbox_mode}, indent=2))
     except (ValueError, OSError) as exc:
         parser.exit(2, str(exc) + "\n")
+
+
+if __name__ == "__main__":
+    main()

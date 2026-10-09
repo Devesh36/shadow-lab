@@ -24,12 +24,12 @@ class Investigation(TypedDict, total=False):
 
 
 class Workflow:
-    def __init__(self, store, scan_id, cancelled=None):
+    def __init__(self, store, scan_id, cancelled=None, settings=None):
         self.store = store
         self.scan_id = scan_id
         self.cancelled = cancelled or asyncio.Event()
         self.scan = store.get("scan", scan_id)
-        self.settings = store.settings()
+        self.settings = settings or store.settings()
         self.root = Path(store.get("repository", self.scan["repository_id"])["path"])
 
     def stage(self, name, message):

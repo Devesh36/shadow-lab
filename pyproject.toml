@@ -17,6 +17,7 @@ dev = ["pytest>=8,<9", "pytest-asyncio>=0.25,<2", "ruff>=0.11,<1"]
 
 [project.scripts]
 shadowlab = "packages.core.cli:main"
+shadow = "packages.core.cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -24,6 +25,18 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["packages", "apps"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"alembic.ini" = "alembic.ini"
+"pyproject.toml" = "pyproject.toml"
+"uv.lock" = "uv.lock"
+"infrastructure/sandbox/demo-manifest.json" = "infrastructure/sandbox/demo-manifest.json"
+"examples/vulnerable-nextjs/app" = "examples/vulnerable-nextjs/app"
+"examples/vulnerable-nextjs/lib" = "examples/vulnerable-nextjs/lib"
+"examples/vulnerable-nextjs/package.json" = "examples/vulnerable-nextjs/package.json"
+"examples/vulnerable-nextjs/package-lock.json" = "examples/vulnerable-nextjs/package-lock.json"
+"examples/vulnerable-nextjs/next.config.ts" = "examples/vulnerable-nextjs/next.config.ts"
+"examples/vulnerable-nextjs/tsconfig.json" = "examples/vulnerable-nextjs/tsconfig.json"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

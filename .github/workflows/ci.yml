@@ -20,10 +20,24 @@ jobs:
       - run: npm --prefix apps/web ci && npm --prefix examples/vulnerable-nextjs ci
       - run: npm --prefix apps/web run build -- --webpack && npm --prefix examples/vulnerable-nextjs run build -- --webpack
         env: {NEXT_TELEMETRY_DISABLED: '1'}
+      - run: |
+          uv build --wheel
+          uv run python scripts/check-bundle.py dist/shadowlab-0.1.0-py3-none-any.whl
+          uv tool install --python 3.12 dist/shadowlab-0.1.0-py3-none-any.whl
+          uv run python scripts/smoke-installed.py "$UV_TOOL_BIN_DIR/shadow"
+        env:
+          UV_TOOL_DIR: ${{ runner.temp }}/shadow-tools
+          UV_TOOL_BIN_DIR: ${{ runner.temp }}/shadow-bin
+          SHADOWLAB_HOME: ${{ runner.temp }}/shadow-home
       - run: uv run pytest -q -m 'not e2e'
         env: {SHADOWLAB_TEST_POSTGRES_URL: 'postgresql+psycopg://shadowlab:shadowlab-local@127.0.0.1:5432/shadowlab'}
       - run: |
-          npm --prefix examples/vulnerable-nextjs run start &
-          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:3001 >/dev/null && break || sleep 1; done
+          bash scripts/start.sh > .shadowlab/runtime-ci.log 2>&1 &
+          runtime_pid=$!
+          trap 'kill -TERM "$runtime_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/v1/health >/dev/null && break || sleep 1; done
           uv run pytest -q -m e2e
-        env: {SHADOWLAB_TEST_TARGET: 'http://127.0.0.1:3001', NEXT_TELEMETRY_DISABLED: '1'}
+        env:
+          SHADOWLAB_TEST_TARGET: 'http://127.0.0.1:3001'
+          SHADOWLAB_TEST_DASHBOARD: 'http://127.0.0.1:3000'
+          NEXT_TELEMETRY_DISABLED: '1'

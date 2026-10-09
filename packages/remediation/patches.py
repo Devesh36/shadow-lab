@@ -149,8 +149,10 @@ async def propose(store, finding):
                                      "expected": "NOT_REPRODUCED; owner fixtures remain available"}, indent=2))
     store.put("finding", {"state": FindingState.FIX_PROPOSED}, id=finding["id"])
     try:
+        from packages.core.demo_scope import demo_settings
         result = await verify(worktree, finding, browser=scan.get("browser", False),
-                              artifact_dir=store.data_dir / "browser-evidence", execution_settings=store.settings())
+                              artifact_dir=store.data_dir / "browser-evidence",
+                              execution_settings=demo_settings(scan["target"]) if scan.get("demo") else store.settings())
     except Exception as exc:
         result = {"passed": False, "validation": "Verification failed: " + type(exc).__name__, "test_count": 0}
         if scan.get("browser"):

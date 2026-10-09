@@ -1,9 +1,10 @@
 FROM node:22-bookworm-slim AS build
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
-RUN --mount=type=secret,id=custom-ca,required=false if [ -f /run/secrets/custom-ca ]; then cp /run/secrets/custom-ca /usr/local/share/ca-certificates/custom-ca.crt && update-ca-certificates; fi
 WORKDIR /web
 COPY apps/web/package*.json ./
-RUN NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt npm ci --no-audit --no-fund
+RUN --mount=type=secret,id=custom-ca,required=false \
+    if [ -f /run/secrets/custom-ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/custom-ca; fi; \
+    npm ci --strict-ssl=true --no-audit --no-fund
 COPY apps/web/ ./
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build -- --webpack

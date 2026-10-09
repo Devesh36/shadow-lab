@@ -4,9 +4,53 @@ Local-first application security investigations with source analysis, scoped run
 
 ShadowLab is a working V1 vertical slice. It parses Next.js routes, runs local Semgrep rules, builds hypotheses in a persistent LangGraph workflow, tests explicitly approved applications, validates the trusted local demo with isolated browser identities, stores findings in PostgreSQL or SQLite, and proposes verified patches for its shipped synthetic demo. A rule-based investigation works without an LLM key; LiteLLM can optionally prioritize its typed hypotheses.
 
-## Start locally
+## Quick start: install and choose Demo
 
-Prerequisites: Linux, Python 3.12+, uv, Node.js 22+, npm, and Git. Other operating systems can run the Python/web tools, but process-group cleanup and the startup helper currently target Linux.
+On macOS or Linux, install from GitHub with [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv tool install --python 3.12 "git+https://github.com/Devesh36/shadow-lab.git@feature/browser-identity-validation"
+shadow repl
+```
+
+Or use the custom Homebrew tap:
+
+```bash
+brew tap devesh36/shadowlab https://github.com/Devesh36/shadow-lab.git
+brew install --HEAD devesh36/shadowlab/shadowlab
+shadow repl
+```
+
+Type **`demo`** or **`1`** at `shadow>`. ShadowLab prepares its bundled synthetic application, starts three private loopback services, runs a real investigation, and opens the workspace. `shadow Repl` also works; `shadowlab` remains a compatibility alias. Git-based uv installation and the HEAD formula work without a PyPI package or stable release. Homebrew installation has not been tested on macOS in this Linux workspace; its formula is syntax-checked and has a native installation CI job.
+
+For uv installs, first install **Node.js 22+, npm and Git**. Python 3.12+ is required; uv can provision it. Homebrew declares these runtime dependencies. First demo preparation requires internet access to fetch locked npm packages and may take several minutes. Later runs reuse the build. The guided launcher supports macOS/Linux; native macOS behavior has not been exercised here. On Windows, use a Linux environment such as WSL.
+
+| Console command | Action |
+| --- | --- |
+| `demo` / `1` | Authorize bounded tests of the bundled synthetic local app and open its investigation |
+| `demo browser` | Repeat with isolated anonymous/Alice/Bob browser sessions; Chromium is required |
+| `findings` | Show the latest investigation's actual verdicts |
+| `fix NUMBER` | Explicitly approve a disposable patch experiment for a supported finding; review remains required |
+| `report` | Export the current sanitized Markdown report |
+| `doctor` / `2` | Check local launcher prerequisites |
+| `stop` | Stop local services, retaining saved evidence |
+| `help` / `quit` | Show commands / close the console and stop its services |
+
+The REPL executes fixed actions, never arbitrary shell or Python input. Every launch gets fresh ports, a private API token and separate SQLite state. It copies only an explicit bundle of reviewed files into `~/.local/share/shadowlab`; `SHADOWLAB_HOME` overrides this location. `runs/` contains reports, logs, evidence and disposable patch worktrees; `bundles/` contains reusable builds. It preserves the current working directory, source checkout and existing operator database/settings. Quit, EOF and Ctrl+C clean up its service processes; Ctrl+C during an investigation cancels it. Patches are never applied to the bundled source, merged or deployed.
+
+Optional browser prerequisite (matching the shipped Playwright version):
+
+```bash
+uvx --from playwright==1.63.0 playwright install chromium
+# Or point to an existing compatible system Chromium:
+export SHADOWLAB_CHROMIUM_PATH=/absolute/path/to/chromium
+```
+
+Linux needs Chromium's system libraries; see Playwright's installation guidance. Missing/unsupported setup is shown as incomplete browser coverage. The default `demo` needs no browser installation or LLM key. For CLI updates, rerun the uv install with `--reinstall`, or use `brew upgrade --fetch-HEAD devesh36/shadowlab/shadowlab`.
+
+## Start from a checkout
+
+Prerequisites: Linux, Python 3.12+, uv, Node.js 22+, npm, and Git. The original shell startup helper targets Linux; the guided REPL uses portable POSIX process groups.
 
 ```bash
 git clone https://github.com/Devesh36/shadow-lab.git
@@ -15,7 +59,7 @@ bash scripts/setup.sh
 bash scripts/start.sh
 ```
 
-The helper starts the API on port 8000, dashboard on port 3000, and disposable demo on port 3001, bound to loopback. Stop the helper with Ctrl+C to stop all three. In development, replace each Next.js production start with `npm run dev -- --webpack` in its app directory and run the API with `uv run uvicorn apps.api.main:app --reload`.
+The helper starts the API on port 8000, website on port 3000, and disposable demo on port 3001, bound to loopback. Open `http://127.0.0.1:3000` for the Next.js landing page, `/demo` for a guided investigation, or `/app` for the preserved workspace. Selecting **Start demo** explicitly authorizes only the bundled loopback fixture and uses per-scan settings without changing saved operator settings. Stop the helper with Ctrl+C to stop all three. In development, replace each Next.js production start with `npm run dev -- --webpack` in its app directory and run the API with `uv run uvicorn apps.api.main:app --reload`.
 
 Local persistence defaults to `.shadowlab/shadowlab.db`. `SHADOWLAB_DATABASE_URL` selects PostgreSQL; `SHADOWLAB_DATA_DIR` holds checkpoints, patches, and sanitized screenshots. A random API bearer token is generated in `.shadowlab/api-token` with mode 0600. The dashboard uses a server-side proxy; it never sends that token to the browser. The API exposes OpenAPI at `/docs`; protected operations require the token. This is a single-user, local dashboard. Public hosting requires an authenticated reverse proxy and a different deployment design.
 
@@ -34,6 +78,8 @@ The helper fills only an absent or empty API token and preserves other values. C
 For this managed cloud's TLS inspection, Docker builds need its provided CA through the optional `custom-ca` BuildKit secret. See [troubleshooting](docs/troubleshooting.md). Never disable TLS verification.
 
 ## Reproduce the demo
+
+For the simplest route, open `/demo` and select **Start demo**. The following manual workflow remains available at `/app`:
 
 1. Start the three services above.
 2. In **Repositories**, register `examples/vulnerable-nextjs` (`/app/examples/vulnerable-nextjs` in Docker).
@@ -104,7 +150,7 @@ The E2E test verifies route discovery, real Semgrep completion, three confirmed 
 
 ## Architecture and limits
 
-`apps/api` serves the versioned API. `apps/web` is the Next.js dashboard. `packages/agents` owns the graph, `analyzers` source intelligence, `policies` authorization, `execution` bounded tools, `evidence` redaction, `db` persistence and migrations, and `remediation` patch verification. CLI and API share the same service and workflow.
+`apps/api` serves the versioned API. `apps/web` serves the Next.js landing page, guided demo and existing dashboard at `/app`. `packages/agents` owns the graph, `analyzers` source intelligence, `policies` authorization, `execution` bounded tools, `evidence` redaction, `db` persistence and migrations, and `remediation` patch verification. CLI and API share the same service and workflow.
 
 The analyzer uses Tree-sitter for parsing and source positions, with framework-specific heuristic classification. It does not establish complete roles, middleware behavior, authorization data flows, or program-wide soundness. Findings require identifiable seeded resources and distinct owner baselines before BOLA confirmation. Exposure is based on nonempty sensitive field names; manual review still determines business impact. General HTTP tests are non-destructive GETs only; the fixed demo browser adapter also permits synthetic login/logout POSTs, with exact origins, pinned DNS, redirect rejection, private-address restrictions, and execution budgets.
 

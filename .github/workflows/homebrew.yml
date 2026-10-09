@@ -1,0 +1,17 @@
+name: Homebrew HEAD installation
+on:
+  push:
+    branches: [feature/browser-identity-validation]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  install:
+    runs-on: macos-latest
+    steps:
+      - run: brew tap devesh36/shadowlab https://github.com/Devesh36/shadow-lab.git
+      - run: brew install --HEAD devesh36/shadowlab/shadowlab
+      - run: brew test devesh36/shadowlab/shadowlab
+      - run: |
+          shadow --help
+          printf 'doctor\nquit\n' | shadow Repl
