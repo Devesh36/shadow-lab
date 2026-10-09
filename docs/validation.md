@@ -244,3 +244,24 @@ Result: **Syntax OK**. The first direct workspace bind was unreadable to the nes
 - `.shadowlab/distribution/shadowlab-0.1.0-py3-none-any.whl`: tested distribution. All **67** enumerated runtime assets were present; no `.env`, private state, Git data, bytecode, `node_modules` or `.next` was included.
 
 Only sanitized reports/receipts/screenshots are shareable evidence. Private run directories also contain mode-0600 API tokens and operational databases; never distribute a whole run directory. No cookie state, bearer token or sensitive response value is printed in the console or exported report. Git ignores all validation state. Optional missing tools and incomplete browser checks remain visible. macOS launcher/Homebrew installation, hosted provider calls and a publicly deployed landing page were not validated in this workspace. Arbitrary untrusted code execution, generalized remediation and wider scanning remain outside this increment.
+
+
+### Published branch installation verification
+
+Implementation commit `594f577` was pushed to `origin/feature/browser-identity-validation` under the user's earlier explicit push authorization. The remote ref matched the local commit. After the push, the advertised GitHub installation was actually rerun:
+
+```bash
+UV_CACHE_DIR=/workspace/.cache/uv \
+UV_TOOL_DIR=/workspace/shadow-lab/.shadowlab/uv-tools \
+UV_TOOL_BIN_DIR=/workspace/shadow-lab/.shadowlab/uv-bin \
+  uv tool install --reinstall --python 3.12 \
+  'git+https://github.com/Devesh36/shadow-lab.git@feature/browser-identity-validation'
+SHADOWLAB_HOME=/workspace/shadow-lab/.shadowlab/repl-final \
+  .venv/bin/python scripts/smoke-installed.py .shadowlab/uv-bin/shadow
+```
+
+Both installation and the real outside-checkout investigation **passed**. The remote-installed scan was `64e284d0-46aa-4c93-8878-15e806d5a451`, with confirmed authentication/BOLA/exposure/header findings and a sanitized report at `.shadowlab/repl-final/runs/b25e7f245d8c4322891fc8930f1bd512/report-64e284d0-46aa-4c93-8878-15e806d5a451.md`. Its three service ports were closed after exit. Transcripts: `.shadowlab/repl-github-install.log` and `.shadowlab/repl-github-smoke.log`.
+
+`gh run list --repo Devesh36/shadow-lab --branch feature/browser-identity-validation --limit 3 --json databaseId,workflowName,status,conclusion,url` was **blocked with HTTP 403**. Remote CI status, including the macOS Homebrew job, could not be observed through this API; no network/security permissions were broadened. The native 72-test result and actual GitHub-installed demo are independently observed results.
+
+Temporary web and PostgreSQL validation containers were removed after their checks. The native product services remain available on loopback: `/`, `/demo`, `/app`, and the dashboard proxy health route each returned **200** on port 3000. No release, package registry publication, merge or external deployment was performed.

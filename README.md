@@ -21,6 +21,8 @@ brew install --HEAD devesh36/shadowlab/shadowlab
 shadow repl
 ```
 
+If `shadow` is not on your PATH after installation, run `uv tool update-shell` and reopen your terminal.
+
 Type **`demo`** or **`1`** at `shadow>`. ShadowLab prepares its bundled synthetic application, starts three private loopback services, runs a real investigation, and opens the workspace. `shadow Repl` also works; `shadowlab` remains a compatibility alias. Git-based uv installation and the HEAD formula work without a PyPI package or stable release. Homebrew installation has not been tested on macOS in this Linux workspace; its formula is syntax-checked and has a native installation CI job.
 
 For uv installs, first install **Node.js 22+, npm and Git**. Python 3.12+ is required; uv can provision it. Homebrew declares these runtime dependencies. First demo preparation requires internet access to fetch locked npm packages and may take several minutes. Later runs reuse the build. The guided launcher supports macOS/Linux; native macOS behavior has not been exercised here. On Windows, use a Linux environment such as WSL.
