@@ -1,0 +1,10 @@
+.git
+.venv
+.shadowlab
+**/node_modules
+**/.next
+**/__pycache__
+.env
+.pytest_cache
+.ruff_cache
+**/next-env.d.ts

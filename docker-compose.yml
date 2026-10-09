@@ -1,0 +1,94 @@
+name: shadowlab
+x-hardening: &hardening
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  pids_limit: 256
+  cpus: 2
+  mem_limit: 1g
+  restart: "no"
+services:
+  # A shared network namespace lets the HTTP policy use exact loopback origins.
+  # This lab network has no outbound route. It is for reviewed, trusted code only.
+  demo:
+    <<: *hardening
+    build:
+      context: .
+      dockerfile: infrastructure/docker/demo.Dockerfile
+    networks: [lab]
+    read_only: true
+    tmpfs: ["/tmp:rw,nosuid,size=128m"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  postgres:
+    <<: *hardening
+    image: postgres:17-alpine
+    user: postgres
+    network_mode: service:demo
+    command: ["postgres", "-c", "listen_addresses=127.0.0.1"]
+    environment:
+      POSTGRES_USER: shadowlab
+      POSTGRES_PASSWORD: shadowlab-local
+      POSTGRES_DB: shadowlab
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    tmpfs: ["/var/run/postgresql:rw,nosuid,uid=70,gid=70"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shadowlab -d shadowlab"]
+      interval: 3s
+      retries: 20
+  api:
+    <<: *hardening
+    build:
+      context: .
+      dockerfile: infrastructure/docker/api.Dockerfile
+    network_mode: service:demo
+    depends_on:
+      postgres: {condition: service_healthy}
+      demo: {condition: service_healthy}
+    read_only: true
+    environment:
+      SHADOWLAB_DATABASE_URL: postgresql+psycopg://shadowlab:shadowlab-local@127.0.0.1:5432/shadowlab
+      SHADOWLAB_API_TOKEN: ${SHADOWLAB_API_TOKEN:?Set SHADOWLAB_API_TOKEN in .env; use python -c "import secrets; print(secrets.token_urlsafe(32))"}
+      SHADOWLAB_DATA_DIR: /data
+    volumes: ["api-data:/data"]
+    tmpfs: ["/tmp:rw,nosuid,size=256m"]
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
+      interval: 5s
+      retries: 20
+  web:
+    <<: *hardening
+    build:
+      context: .
+      dockerfile: infrastructure/docker/web.Dockerfile
+    network_mode: service:demo
+    depends_on:
+      api: {condition: service_healthy}
+    environment:
+      SHADOWLAB_API_TOKEN: ${SHADOWLAB_API_TOKEN}
+      SHADOWLAB_API_URL: http://127.0.0.1:8000
+    read_only: true
+    tmpfs: ["/tmp:rw,nosuid,size=128m"]
+  ingress:
+    <<: *hardening
+    build:
+      context: .
+      dockerfile: infrastructure/docker/ingress.Dockerfile
+    depends_on:
+      api: {condition: service_healthy}
+      web: {condition: service_started}
+    networks: [lab, ingress]
+    ports: ["127.0.0.1:3000:3000", "127.0.0.1:8000:8000", "127.0.0.1:3001:3001"]
+    read_only: true
+    tmpfs: ["/tmp:rw,nosuid,size=32m"]
+    mem_limit: 128m
+    cpus: 0.5
+volumes:
+  postgres-data:
+  api-data:
+networks:
+  lab:
+    internal: true
+  ingress: {}

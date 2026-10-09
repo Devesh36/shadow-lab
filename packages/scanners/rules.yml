@@ -1,0 +1,18 @@
+rules:
+  - id: unsafe-sql
+    languages: [typescript, javascript]
+    severity: WARNING
+    message: User input may reach an unsafe raw SQL API; review parameterization.
+    pattern-either:
+      - pattern: $DB.$queryRawUnsafe(...)
+      - pattern: $DB.query($SQL + $INPUT, ...)
+  - id: unsafe-html
+    languages: [typescript, javascript]
+    severity: WARNING
+    message: Raw HTML rendering requires an explicit sanitization boundary.
+    pattern: "<$TAG ... dangerouslySetInnerHTML={$VALUE} ... />"
+  - id: debug-response
+    languages: [typescript, javascript]
+    severity: INFO
+    message: A debug property is included in a JSON response; review sensitive exposure.
+    pattern: "Response.json({..., debug: $VALUE, ...}, ...)"

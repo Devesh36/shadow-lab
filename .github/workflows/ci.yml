@@ -1,0 +1,28 @@
+name: quality
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env: {POSTGRES_USER: shadowlab, POSTGRES_PASSWORD: shadowlab-local, POSTGRES_DB: shadowlab}
+        ports: [5432:5432]
+        options: --health-cmd "pg_isready -U shadowlab" --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - run: uv sync --locked
+      - run: uv run ruff check packages apps/api tests scripts
+      - run: npm --prefix apps/web ci && npm --prefix examples/vulnerable-nextjs ci
+      - run: npm --prefix apps/web run build -- --webpack && npm --prefix examples/vulnerable-nextjs run build -- --webpack
+        env: {NEXT_TELEMETRY_DISABLED: '1'}
+      - run: uv run pytest -q -m 'not e2e'
+        env: {SHADOWLAB_TEST_POSTGRES_URL: 'postgresql+psycopg://shadowlab:shadowlab-local@127.0.0.1:5432/shadowlab'}
+      - run: |
+          npm --prefix examples/vulnerable-nextjs run start &
+          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:3001 >/dev/null && break || sleep 1; done
+          uv run pytest -q -m e2e
+        env: {SHADOWLAB_TEST_TARGET: 'http://127.0.0.1:3001', NEXT_TELEMETRY_DISABLED: '1'}
