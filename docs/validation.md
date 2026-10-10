@@ -469,3 +469,42 @@ git diff --check
 The first static probe ran before the production build finished writing the new export and observed `/docs/` **404**; waiting for build completion and rerunning passed. The mobile screenshot helper was also adjusted to wait for lazy-loaded gallery images after reload, rather than capturing an unloaded placeholder. These were local validation sequencing corrections; final browser checks and provider packaging passed.
 
 The optional `test_postgres_persistence_if_configured` is unchanged. It passed in the preceding database-enabled full suite; this docs-only increment adds no PostgreSQL requirement or new skips and does not claim a fresh database/full-suite run. Homebrew commands are documented from the shipped formula; the public recording is specifically the verified Linux/uv path. WSL is a POSIX option, not a tested native Windows launcher. Browser tests apply the committed production headers locally and restrict all requests to the fixed loopback preview; they do not verify actual Vercel project settings or hosted header delivery. No arbitrary untrusted repository code was executed, and Docker Compose is not asserted as VM-grade isolation.
+
+## Landing redesign and motion — 2026-10-10
+
+The public `apps/landing` homepage was redesigned with an off-white canvas, dark typography, lime highlights, a sticky navigation bar, illustrated workflow cards, a dedicated documentation section, and a three-state Source/Validate/Review product preview. **Docs** is a prominent navigation button on desktop and mobile; further links in the hero, guide section, installation panel and footer lead to `/docs/`. The documentation page and its nine real sanitized terminal recordings remain intact. The preserved local application in `apps/web` and the investigation engine were not redesigned.
+
+Motion includes staggered hero entrances, a drawn underline, typing/caret effects, sequential result rows, floating badges/orbit markers, an evidence-flow marker, scroll reveals, preview-panel transitions, and button/card hover effects. CSS handles these effects; a single IntersectionObserver reveals sections once and disconnects on navigation. There are no additional animation packages, remote fonts, external assets or backend requests. A Pause/Resume control disables/restores animation and transitions; `prefers-reduced-motion: reduce` disables them automatically and shows all content. With JavaScript disabled, the exported page still displays its content and documentation links. The preview is explicitly marked **ILLUSTRATION**; it neither starts scans nor reports live validation.
+
+### Commands and evidence
+
+Prerequisites remain the installed landing dependencies, Node.js 22+ (tested 24.19.0), npm, the existing Python/Playwright dependencies, compatible Chromium `/usr/bin/chromium`, and the installed Vercel CLI 63.1.0 / `@vercel/next` 22.0.0. The static preview was already running at loopback port 3100; finish the production build before inspecting it.
+
+```bash
+NEXT_TELEMETRY_DISABLED=1 npm --prefix apps/landing run build
+npm --prefix apps/landing run typecheck
+npm_config_cache=/workspace/.cache/npm NODE_USE_ENV_PROXY=1 \
+  node scripts/check-landing-vercel.cjs \
+  /workspace/.cache/shadowlab-vercel-cli/node_modules/@vercel/next
+SHADOWLAB_CHROMIUM_PATH=/usr/bin/chromium \
+  .venv/bin/python scripts/validate-landing.py
+.venv/bin/ruff check packages apps/api tests scripts
+git diff --check
+```
+
+| Check | Final result | Sanitized evidence |
+| --- | --- | --- |
+| Production build and TypeScript | Passed; `/` and `/docs` remain static | `.shadowlab/landing-redesign/build-final.log`, `typecheck-final.log` |
+| Actual Vercel Next.js packaging | Passed; zero runtime functions; landing/docs HTML and nine PNG/transcript pairs retained; former `out` override rejected as expected | `.shadowlab/landing-redesign/packaging-final.log`, `packaging-check.json` |
+| Chromium static-site regression | **10 checks passed**, zero final failures | `.shadowlab/landing-redesign/browser-final.log`, `static-checks.json` |
+| Interactive preview / keyboard / replay | Passed; Source shows a hypothesis, Review preserves owner access and requires review; keyboard tabs select/focus correctly | Browser result above |
+| Motion controls / reduced motion | Passed; running animations stop on Pause, resume afterward, and are absent under reduced motion; all reveal content stays visible | Browser result above |
+| Responsive layout | Passed at **320, 390, 768, 1024, 1440 and 1920 px**; no horizontal overflow; Docs and installation controls fully within the viewport | Browser result; `redesign-hero-desktop.png`, `redesign-hero-mobile.png`, `static-desktop.png`, `static-mobile.png` |
+| Docs / installation / clipboard | Passed; navigation and direct docs reload, command copying, nine loaded images and transcript download | Browser result; `docs-desktop.png`, `docs-mobile.png` |
+| Progressive rendering without JavaScript | Passed; homepage content visible and Docs navigation works | Browser result above |
+| Production CSP / request scope | Passed with configured headers applied locally; no page errors, external requests or runtime API calls; application/API paths still 404 | Browser result above |
+| Lint / whitespace | Passed | Commands above |
+
+Desktop and mobile screenshots were visually inspected. The first browser run exposed decorative step numbers in the accessible tab names; they are now hidden from assistive technology so the names match Source/Validate/Review. The next run caught the installation link extending about three pixels beyond a 320px viewport, despite the page's clipping preventing horizontal scrolling. Narrow-screen navigation spacing was corrected, and the final regression checks actual link bounds as well as overflow. Intermediate failures are retained in `browser-first.log` and `browser-second.log`; final rebuilt checks passed.
+
+This is a static website change. The earlier 72-test investigation suite, Docker/PostgreSQL checks and terminal-demo captures were not repeated; their preceding results and optional PostgreSQL prerequisite/skip logic are unchanged. Chromium was tested, not all browser engines. Local provider packaging does not prove cloud deployment or delivered Vercel headers. Deploy the latest `main` with Root Directory **`apps/landing`**; the local product's separate `apps/web` landing is intentionally preserved. No Vercel deployment, credential change, execution-policy relaxation, network-permission change, new service binding or arbitrary repository execution was performed.
