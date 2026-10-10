@@ -4,7 +4,7 @@ The public website lives in `apps/landing`, a standalone Next.js app with `outpu
 
 ## Vercel settings
 
-1. In Vercel, choose **Add New → Project**, import `Devesh36/shadow-lab`, and select the branch containing this change (`feature/browser-identity-validation`). For an existing project, change its Root Directory and clear previous build/output overrides.
+1. In Vercel, choose **Add New → Project**, import `Devesh36/shadow-lab`, and select the branch containing this change (`main`). For an existing project, change its Root Directory and clear previous build/output overrides.
 2. Set **Root Directory: `apps/landing`**.
 3. Set **Framework Preset: Next.js** and **Build Command: `npm run build`**. **Disable the Output Directory override**, including any previously saved `out` value, so Vercel auto-detects the framework output. Use Node.js 22+ and the default npm installation, which uses the committed lockfile. This app is self-contained; source files outside its Root Directory are unnecessary.
 4. No application environment variables or credentials are needed. Do not add API tokens, LLM keys, database URLs or bindings for this website.

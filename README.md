@@ -9,7 +9,7 @@ ShadowLab is a working V1 vertical slice. It parses Next.js routes, runs local S
 On macOS or Linux, install from GitHub with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv tool install --python 3.12 "git+https://github.com/Devesh36/shadow-lab.git@feature/browser-identity-validation"
+uv tool install --python 3.12 "git+https://github.com/Devesh36/shadow-lab.git@main"
 shadow repl
 ```
 

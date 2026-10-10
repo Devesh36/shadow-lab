@@ -1,7 +1,7 @@
 name: Homebrew HEAD installation
 on:
   push:
-    branches: [feature/browser-identity-validation]
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read

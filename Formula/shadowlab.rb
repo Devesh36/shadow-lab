@@ -2,7 +2,7 @@ class Shadowlab < Formula
   desc "Local application security investigations with inspectable evidence"
   homepage "https://github.com/Devesh36/shadow-lab"
   license "MIT"
-  head "https://github.com/Devesh36/shadow-lab.git", branch: "feature/browser-identity-validation"
+  head "https://github.com/Devesh36/shadow-lab.git", branch: "main"
 
   depends_on "node"
   depends_on "python@3.12"
@@ -23,7 +23,7 @@ class Shadowlab < Formula
       Open the console with: shadow repl
       Choose Demo to prepare and investigate the bundled synthetic local application.
       First setup downloads locked Node dependencies. Chromium is optional for browser validation.
-      This HEAD formula installs the current feature branch; no stable release is published yet.
+      This HEAD formula installs the main branch; no stable release is published yet.
     EOS
   end
 
