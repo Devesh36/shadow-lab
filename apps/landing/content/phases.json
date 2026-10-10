@@ -108,12 +108,19 @@
       "impact": "Added slash commands, context-aware prompts, grouped help, session status, finding inspection, terminal completion and JSON demo exports. Strict argument checks preserve explicit patch approval and existing cancellation safeguards."
     },
     {
-      "commit": null,
-      "matchSubject": "Keep REPL initialization scoped to the launch directory",
+      "commit": "e6b630ebb99c3bbdd47bf7ba34288a9ae1a06e64",
       "date": "2026-10-10",
       "phase": "phase2",
       "title": "Project initialization stays scoped",
       "impact": "Ensured /init selects the launch directory even with a broader configured repository root. Added allowed/denied directory regressions and an installed CLI check; the repository allowlist remains enforced."
+    },
+    {
+      "commit": null,
+      "matchSubject": "Add repository demo workflows to REPL and CLI",
+      "date": "2026-10-10",
+      "phase": "phase2",
+      "title": "A guided demo for your own repository",
+      "impact": "Made bare demo run source discovery, analysis, findings and private report export for the selected or launch project. Added a one-shot CLI, project finding/report readers and explicit bundled demo selection, with unsupported runtime/patch coverage reported honestly."
     }
   ]
 }

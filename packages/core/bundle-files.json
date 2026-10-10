@@ -44,6 +44,7 @@
   "packages/core/doctor.py",
   "packages/core/models.py",
   "packages/core/project.py",
+  "packages/core/project_demo.py",
   "packages/core/repl.py",
   "packages/core/repl_commands.py",
   "packages/core/report.py",

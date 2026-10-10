@@ -57,7 +57,7 @@ def test_repl_failed_or_cancelled_setup_cleans_up_and_allows_retry(failure):
             raise failure
         def close(self):
             self.closed = True
-    commands = iter(['demo', 'demo', 'quit'])
+    commands = iter(['demo bundled', 'demo bundled', 'quit'])
     output = []
     run(input_fn=lambda _: next(commands), output=output.append, runtime_factory=Runtime)
     assert len(instances) == 2 and all(r.closed for r in instances)
@@ -81,7 +81,7 @@ def test_repl_eof_closes_running_services_and_repeated_runs_are_fresh(monkeypatc
             return SimpleNamespace(json=lambda: {'status': 'completed', 'stage': 'completed', 'findings': []})
         def close(self):
             self.closed = True
-    commands = iter(['demo', 'stop', 'demo'])
+    commands = iter(['1', 'stop', '/1'])
     def read(_):
         try:
             return next(commands)
@@ -119,7 +119,7 @@ def test_repl_interrupt_cancels_active_scan_before_stopping_services(monkeypatch
             raise KeyboardInterrupt
         def close(self):
             calls.append('closed')
-    commands = iter(['demo', 'quit'])
+    commands = iter(['demo bundled', 'quit'])
     run(input_fn=lambda _: next(commands), output=lambda _: None, runtime_factory=Runtime)
     assert calls[-2:] == ['/scans/active-scan/cancel', 'closed']
 
@@ -149,8 +149,8 @@ def test_context_switch_and_invalid_input_preserve_the_correct_session(monkeypat
         def close(self):
             self.closed = True
     output = []
-    commands = iter(['demo', 'project "Missing"', 'findings', 'project "Unclosed',
-                     'project "Mixed Case"', 'demo', 'quit'])
+    commands = iter(['demo bundled', 'project "Missing"', 'findings', 'project "Unclosed',
+                     'project "Mixed Case"', 'demo bundled', 'quit'])
     run(input_fn=lambda _: next(commands), output=output.append, runtime_factory=Runtime, project_factory=Project)
     assert len(runtimes) == 2 and all(r.closed for r in runtimes)
     assert len(projects) == 1 and projects[0].closed
@@ -278,7 +278,7 @@ def test_slash_demo_json_report_and_explicit_patch_request(monkeypatch, tmp_path
             return SimpleNamespace(json=lambda: scan)
         def close(self):
             calls.append('closed')
-    commands = iter(['/demo', '/status', '/inspect 1', '/export json', '/fix 1 extra', '/fix 1', '/quit'])
+    commands = iter(['/demo bundled', '/status', '/inspect 1', '/export json', '/fix 1 extra', '/fix 1', '/quit'])
     run(input_fn=lambda _: next(commands), output=output.append, runtime_factory=Runtime)
     patches = [call for call in calls if isinstance(call, tuple) and call[1].endswith('/propose-fix')]
     assert len(patches) == 1

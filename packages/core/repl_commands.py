@@ -29,7 +29,7 @@ COMMANDS = {
     'findings': Command('findings', 'List verdicts for the selected scan.', 'Evidence'),
     'inspect': Command('inspect NUMBER', 'Show a finding\'s source references and validation summary.', 'Evidence', 'number'),
     'report': Command('report [json]', 'Export a private Markdown or JSON report.', 'Evidence', 'report'),
-    'demo': Command('demo [browser]', 'Authorize bounded checks of the bundled synthetic local demo.', 'Demo', 'demo'),
+    'demo': Command('demo [bundled|browser]', 'Run the selected/launch project workflow; bundled or browser selects the synthetic demo.', 'Demo', 'demo'),
     'fix': Command('fix NUMBER', 'Explicitly approve a disposable demo patch; review still required.', 'Demo', 'number'),
 }
 ALIASES = {'1': 'demo', '2': 'doctor', '?': 'help', 'exit': 'quit', 'q': 'quit',
@@ -49,7 +49,7 @@ def validate(command, arguments):
         'number': len(arguments) == 1 and arguments[0].isascii() and arguments[0].isdigit()
                   and len(arguments[0]) <= 6 and int(arguments[0]) > 0,
         'help': len(arguments) <= 1,
-        'demo': arguments in ([], ['browser']),
+        'demo': arguments in ([], ['bundled'], ['browser']),
         'report': arguments in ([], ['json']),
     }[kind]
     return valid
@@ -75,6 +75,9 @@ def show_help(output, topic=None):
             output('Only supported demo findings can be patched. This command approves the experiment; review the diff before use.')
         if name in ('init', 'project', 'scan'):
             output('Source-only: no project scripts, installs, runtime requests, LLM calls or patches. Static findings are hypotheses.')
+        if name == 'demo':
+            output('/demo analyzes the selected project, or the launch directory, and exports both reports.')
+            output('/demo bundled (or 1) authorizes the synthetic app; /demo browser adds its browser checks.')
         return
     for group in ('Session', 'Project', 'Evidence', 'Demo'):
         output(group)
@@ -83,7 +86,7 @@ def show_help(output, topic=None):
                 output('  /' + spec.usage + ' — ' + spec.description)
     output('Slash prefixes are optional. Aliases: /context → /status · /export → /report · /exit → /quit.')
     output('Tab completes commands; ↑/↓ recall input in this process only when terminal editing is available.')
-    output('Choosing Demo authorizes bounded checks of the bundled synthetic local app.')
+    output('demo bundled / demo browser / 1 authorize bounded checks of the bundled synthetic local app.')
     output('fix NUMBER explicitly approves a disposable patch experiment; every patch needs review.')
     output('Project mode is source-only; it never builds, installs, executes or patches your project.')
     output('Ctrl+C during work cancels it; at the prompt it exits. /clear keeps results; /stop closes the context.')

@@ -599,7 +599,7 @@ export default function Landing() {
               <br />A real investigation.
             </h2>
             <p>
-              Open the console. Choose <code>demo</code>. ShadowLab prepares a
+              Open the console. Choose <code>demo bundled</code>. ShadowLab prepares a
               disposable local app and takes you from source to evidence.
             </p>
             <div className="m-install-prerequisites">
@@ -674,7 +674,7 @@ export default function Landing() {
               <span>
                 <span>THEN TYPE</span>
                 <code>
-                  shadow&gt; demo
+                  shadow&gt; demo bundled
                   <span className="m-terminal-caret" aria-hidden="true" />
                 </code>
               </span>

@@ -19,19 +19,64 @@ def main():
     scan.add_argument("--approve", action="store_true", help="Approve bounded execution against a trusted app")
     scan.add_argument("--demo-fixtures", action="store_true", help="Use only the shipped demo's synthetic tokens")
     scan.add_argument("--browser", action="store_true", help="Validate the reviewed local demo with three isolated browser identities")
-    commands.add_parser("findings")
+    findings = commands.add_parser("findings")
+    findings.add_argument('--project', nargs='?', const='.', help='Read the latest private project scan (default path: launch directory)')
     export = commands.add_parser("report")
     export.add_argument("--scan-id")
     export.add_argument("--format", choices=["markdown", "json"], default="markdown")
+    export.add_argument('--project', nargs='?', const='.', help='Read a private project scan instead of operator state')
     commands.add_parser("doctor")
     commands.add_parser("repl", help="Open the guided ShadowLab console")
-    argv = sys.argv[1:]
+    demo = commands.add_parser('demo', help='Run the project walkthrough or explicitly choose the bundled demo')
+    demo.add_argument('path', nargs='?', help='Project path (default: launch directory)')
+    demo.add_argument('--bundled', action='store_true', help='Use the reviewed synthetic app, not a source project')
+    demo.add_argument('--browser', action='store_true', help='Add isolated browser checks; requires --bundled')
+    argv = sys.argv[1:] or ['repl']
     if argv and argv[0].casefold() == "repl":
         argv[0] = "repl"
     args = parser.parse_args(argv)
     if args.command == "repl":
         from packages.core.repl import run
         run()
+        return
+    if args.command == 'demo' or getattr(args, 'project', None) is not None:
+        if args.command == 'demo' and args.browser and not args.bundled:
+            parser.error('--browser requires --bundled; arbitrary-project browser adapters are unsupported')
+        if args.command == 'demo' and args.bundled and args.path is not None:
+            parser.error('A project path cannot be combined with --bundled')
+        from packages.core.repl_commands import display
+        try:
+            if args.command == 'demo' and args.bundled:
+                from packages.core.repl import run_bundled_demo
+                run_bundled_demo(browser=args.browser)
+            else:
+                from packages.core.project import ProjectSession
+                from packages.core.project_demo import run_project_demo
+                path = args.path if args.command == 'demo' else args.project
+                project = ProjectSession(str(Path(path).expanduser().absolute()) if path else os.getcwd())
+                try:
+                    if args.command == 'demo':
+                        run_project_demo(project)
+                    elif args.command == 'findings':
+                        if not project.scan_id:
+                            raise ValueError('No project scans available; run shadow demo first')
+                        print(json.dumps(project.findings, indent=2))
+                    else:
+                        from packages.core.report import report
+                        if args.scan_id:
+                            if not project.store.get('scan', args.scan_id):
+                                raise ValueError('Scan is not available in this project')
+                            project.scan_id = args.scan_id
+                        if not project.scan_id:
+                            raise ValueError('No project scans available; run shadow demo first')
+                        print(report(project.store, project.scan_id, args.format))
+                finally:
+                    project.close()
+        except KeyboardInterrupt:
+            parser.exit(130, 'Demo cancelled; coverage is incomplete. Owned processes stopped.\n')
+        except Exception as exc:
+            detail = display(exc) if isinstance(exc, (ValueError, OSError, TimeoutError)) else type(exc).__name__
+            parser.exit(2, 'Demo incomplete: ' + detail + '\n')
         return
     from packages.agents.workflow import Workflow
     from packages.analyzers.nextjs import discover

@@ -49,6 +49,7 @@ jobs:
           uv run python scripts/validate-repl-terminal.py "$UV_TOOL_BIN_DIR/shadow"
           uv run python scripts/smoke-project-installed.py "$UV_TOOL_BIN_DIR/shadow"
           uv run python scripts/smoke-installed.py "$UV_TOOL_BIN_DIR/shadow"
+          uv run python scripts/smoke-demo-cli-installed.py "$UV_TOOL_BIN_DIR/shadow"
         env:
           UV_TOOL_DIR: ${{ runner.temp }}/shadow-tools
           UV_TOOL_BIN_DIR: ${{ runner.temp }}/shadow-bin

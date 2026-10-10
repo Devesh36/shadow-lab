@@ -162,21 +162,21 @@ export default function Docs() {
               , and <code>quit</code>. Enter these commands at the{' '}
               <code>shadow&gt;</code> prompt, one at a time:
             </p>
-            <Command label="REPL demo commands">{'doctor\nhelp\ndemo'}</Command>
+            <Command label="REPL demo commands">{'doctor\nhelp\ndemo bundled'}</Command>
             <p>
-              Choosing <code>demo</code> authorizes bounded checks against the
+              Choosing <code>demo bundled</code> or <code>1</code> authorizes bounded checks against the
               bundled synthetic local app. ShadowLab creates a private
               disposable workspace, starts its local services, and opens the
               investigation in your browser. If it does not open automatically,
               use the printed <code>http://127.0.0.1:PORT/app?scan=…</code> URL.
             </p>
             <div className="docs-note">
-              <strong>Your project stays separate.</strong>
+              <strong>Choose the project or the synthetic app.</strong>
               <p>
-                The REPL&apos;s Demo option always uses the reviewed bundled
-                application, even when you launch it inside your project. Use
-                the <a href="#project">project commands below</a> for your own
-                source.
+                Bare <code>demo</code> runs a source-only walkthrough on your selected
+                project or launch directory. <code>demo bundled</code> and <code>1</code>{' '}
+                explicitly select the reviewed synthetic application. See the{' '}
+                <a href="#project">project commands below</a> for your own source.
               </p>
             </div>
             <p>
@@ -263,6 +263,16 @@ export default function Docs() {
             <span className="docs-step">04 / YOUR SOURCE</span>
             <h2>Use it in your project</h2>
             <p>
+              For the guided workflow, run <code>shadow</code> inside your repository
+              and type <code>demo</code>. It discovers routes, analyzes source,
+              shows findings and coverage, and exports Markdown and JSON reports.
+              Browser verification and automatic fixes for arbitrary projects are
+              unsupported and shown honestly in the reports.
+            </p>
+            <Command label="Project demo CLI">
+              {'cd /path/to/your-nextjs-project\nshadow demo\nshadow findings --project .\nshadow report --project . --format json'}
+            </Command>
+            <p>
               Open the console from your Next.js project directory. Select your
               source, run an analysis, and inspect the saved results in one place:
             </p>
@@ -343,7 +353,8 @@ export default function Docs() {
                     ['project PATH', 'Select a project for source-only analysis.'],
                     ['scan / routes', 'Analyze the selected project / list saved routes.'],
                     ['history / use NUMBER', 'List recent project scans / select a saved scan.'],
-                    ['demo / 1', 'Run the bundled synthetic investigation.'],
+                    ['demo', 'Run the selected/launch project source workflow and export both reports.'],
+                    ['demo bundled / 1', 'Run the bundled synthetic investigation.'],
                     [
                       'doctor / 2',
                       'Check Node, npm, and Git availability; Node must be 22+.',

@@ -692,3 +692,69 @@ git diff --check
 Initial failures were corrected before acceptance: the default sandbox denied the wheel resolver's connection; a subsequent inventory command read the older wheel and was not accepted as validation. A fresh offline build and byte comparison verified the actual changed wheel. The first landing build rejected an unsupported `id` prop on the existing Docs command component; removing it restored the build and browser check. A diagnostic summary is saved in `.shadowlab/repl-commands/initial-checks.json`.
 
 The skipped test is still `test_postgres_persistence_if_configured`: it requests `SHADOWLAB_TEST_POSTGRES_URL`, which was absent for this run. Its code/conditional status did not change; it passed with configured PostgreSQL in the earlier Phase 2 run. PostgreSQL and Docker were not repeated for this command/UI increment, and no fresh database/container result is claimed. There was no hosted CI run, deployment, release, stable package publication or macOS Homebrew installation. The console remains synchronous: cancellation during active work uses Ctrl+C, rather than pretending an idle `/cancel` command can interrupt it. Arbitrary untrusted-repository execution remains disabled; Docker Compose is not a VM-grade isolation boundary.
+
+## Repository demo in REPL and CLI — 10 October 2026 (IST)
+
+Launching `shadow` without arguments now opens the console. Bare `demo` runs the available project workflow: select the launch directory if no project is selected, discover routes, analyze source, show findings and export private Markdown/JSON reports. Repeating it creates a new scan in the same private project history. `shadow demo [PATH]` runs the same workflow once; `shadow findings --project [PATH]` and `shadow report --project [PATH] --format json` read that project's store, without opening the separate operator database. Explicit paths are relative to the launch directory and remain subject to the existing repository allowlist. A foreign scan ID cannot be read through a project's report command.
+
+`demo bundled` (or menu option `1`) retains the synthetic runtime workflow; `demo browser` retains its isolated browser identities. The one-shot CLI equivalent is `shadow demo --bundled --browser`: it exports both reports and always stops its owned services. Interactive `/fix NUMBER` still requires explicit approval of a disposable synthetic patch experiment. Bare project `demo` never falls back to bundled findings when project selection or analysis fails.
+
+Project coverage is stored with the scan and included in both report formats. Unsupported route layouts, unavailable scanners, disabled advisory requests and unsupported general-project browser/patch verification are reported explicitly. Static findings remain INCONCLUSIVE; an empty finding list does not establish security. No project scripts, installs, application servers, advisory network calls or automatic fixes are run. Existing bounded source analysis, worker isolation, cancellation, outbound restrictions, target allowlists and reviewed demo checks remain in force. Failure/cancellation cannot export a previous successful scan as the new result.
+
+README, landing instructions and Docs describe the distinction and CLI commands. The public Phases catalog preserves the earlier launch-directory commit and adds this dated increment. The nine terminal screenshot/transcript pairs remain historical captures with their original provenance. CI adds the installed one-shot bundled-browser smoke. The runtime inventory grows from 70 to 71 reviewed assets; dependencies, locks, demo fixture checksums and execution permissions are unchanged.
+
+Prerequisites reused: Python 3.12, uv 0.12, Node 24.19/npm 11.9, installed frozen dependencies including Semgrep/Playwright, compatible Chromium `/usr/bin/chromium`, the trusted native demo/dashboard/API on ports 3001/3000/8000, static landing export served on port 3100, Vercel CLI 63.1 / `@vercel/next` 22 and existing uv/npm caches. Commands requiring local sockets/process creation used individually approved execution when the managed sandbox prevented those operations. The cloud onboarding/runtime skills guided reuse of the existing setup; no credential, network-policy or environment configuration change was required. The installed demo used a new private home, reused the reviewed npm cache, and performed normal locked installation and production builds rather than bypassing setup.
+
+Commands executed from the repository root; output is saved under ignored `.shadowlab/project-demo/`:
+
+```bash
+.venv/bin/pytest -q tests/unit/test_project_demo.py tests/unit/test_repl.py tests/unit/test_project.py tests/unit/test_doctor.py
+SHADOWLAB_TEST_TARGET=http://127.0.0.1:3001 \
+SHADOWLAB_TEST_DASHBOARD=http://127.0.0.1:3000 \
+SHADOWLAB_CHROMIUM_PATH=/usr/bin/chromium .venv/bin/pytest -q
+UV_CACHE_DIR=/workspace/.cache/uv uv build --offline --wheel
+.venv/bin/python scripts/check-bundle.py dist/shadowlab-0.1.0-py3-none-any.whl
+UV_CACHE_DIR=/workspace/.cache/uv \
+UV_TOOL_DIR="$PWD/.shadowlab/project-demo/tools" \
+UV_TOOL_BIN_DIR="$PWD/.shadowlab/project-demo/bin" \
+  uv tool install --offline --python 3.12 --reinstall-package shadowlab dist/shadowlab-0.1.0-py3-none-any.whl
+.venv/bin/python scripts/smoke-project-installed.py .shadowlab/project-demo/bin/shadow
+.venv/bin/python scripts/validate-repl-terminal.py .shadowlab/project-demo/bin/shadow
+mkdir -p .shadowlab/project-demo/demo-home/cache
+ln -s "$PWD/.shadowlab/phase2/demo-home/cache/npm" .shadowlab/project-demo/demo-home/cache/npm
+SHADOWLAB_HOME="$PWD/.shadowlab/project-demo/demo-home" \
+  .venv/bin/python scripts/smoke-demo-cli-installed.py .shadowlab/project-demo/bin/shadow
+SHADOWLAB_HOME="$PWD/.shadowlab/project-demo/demo-home" \
+  .venv/bin/python scripts/smoke-installed.py .shadowlab/project-demo/bin/shadow
+SHADOWLAB_HOME="$PWD/.shadowlab/project-demo/demo-home" \
+  .venv/bin/python scripts/validate-repl-cancel.py .shadowlab/project-demo/bin/shadow
+.venv/bin/pytest -q tests/unit/test_repl.py
+npm --prefix apps/landing run test:phases
+NEXT_TELEMETRY_DISABLED=1 npm --prefix apps/landing run build
+npm --prefix apps/landing run typecheck
+SHADOWLAB_CHROMIUM_PATH=/usr/bin/chromium .venv/bin/python scripts/validate-landing.py
+node scripts/check-landing-vercel.cjs /workspace/.cache/shadowlab-vercel-cli/node_modules/@vercel/next
+.venv/bin/ruff check packages apps/api tests scripts
+git diff --check
+```
+
+| Check | Result | Sanitized evidence |
+| --- | --- | --- |
+| Full application/API/browser suite | **126 passed, 0 failed, 1 skipped**, 277.14 s; existing multi-identity cases, three reviewed patch verifications and cancellation/redirect/security regressions retained | `.shadowlab/project-demo/full-suite.log` |
+| Focused project/REPL/diagnostic run | **61 passed**, 76.78 s; this preceded the final two added CLI setup-cleanup cases, which passed in the full suite | `.shadowlab/project-demo/focused.log` |
+| Final REPL guidance check | **30 passed**, 2.10 s, after correcting two context/retry messages; corrected guidance included in the rebuilt/reinstalled wheel | `.shadowlab/project-demo/final-repl.log` |
+| Final wheel/inventory | Passed; all 71 runtime assets byte-match current source, entry points present, no private/generated state | `.shadowlab/project-demo/wheel-build.log`, `install.log`, `wheel-receipt.json` |
+| Installed project REPL and CLI outside checkout | Passed; bare launcher, project demo in both interfaces, three INCONCLUSIVE hypotheses, Semgrep completed, advisory requests disabled, private history/readers, broader-root launch scope, source unchanged and operator state isolated | `.shadowlab/project-demo/installed-project.json` |
+| Installed one-shot browser demo | Passed; authentication, object authorization and sensitive exposure all CONFIRMED by browser evidence; both reports sanitized/0600, caller source unchanged, all three service ports closed | `.shadowlab/project-demo/installed-bundled-cli.json`; private run `demo-home/runs/fb7b2bdd13ef42bb8ed7545bf6f8c44e/` beneath the same evidence directory |
+| Installed interactive bundled compatibility | Passed; findings/inspection/status and Markdown/JSON exports, sanitization, unchanged caller and three closed service ports | `.shadowlab/project-demo/installed-repl-bundled.log` |
+| Installed interruption cleanup on final wheel | Passed; one live explicitly approved disposable patch process observed, SIGINT terminated it and closed all three service ports; no patch merged | `.shadowlab/project-demo/cancellation.log` |
+| Installed pseudo-terminal | Passed; Tab completion, recall, clear/help and no caller-state creation outside checkout | `.shadowlab/project-demo/terminal.json` |
+| Phase history tests | **9 passed**, 0 failed/skipped | `.shadowlab/project-demo/history-tests.log` |
+| Landing build / TypeScript | Passed; `/` and `/docs` static, 14 recorded updates | `.shadowlab/project-demo/landing-build.log`, `landing-typecheck.log` |
+| Real static-site Chromium | **11 passed**; project-demo CLI copy and explicit bundled instructions, all phase entries and previous responsive/motion/no-JS/request checks | `.shadowlab/project-demo/landing-browser.log`; `.shadowlab/vercel-validation/static-checks.json` |
+| Actual local Vercel adapter | Passed; landing/Docs/assets and Git-free phase snapshot, zero functions; former `out` override rejected as expected | `.shadowlab/project-demo/vercel-packaging.log`; `.shadowlab/vercel-manifest-fix/packaging-check.json` |
+| Lint / whitespace | Passed | Commands above |
+
+Only sanitized summaries, exported reports and browser artifacts are suitable for sharing. Private API tokens, databases, settings and raw service logs remain outside version control. Reports were checked against the private API token and known synthetic credential/sensitive-value sentinels. The synthetic caller's postinstall script and a project-local `sitecustomize.py` execution sentinel were not executed. Both successful and failed/cancelled source workflows are covered; CLI setup failure and cancellation close owned runtime resources. No unsupported operation is counted as passed coverage.
+
+The one skipped test remains `test_postgres_persistence_if_configured`: `SHADOWLAB_TEST_POSTGRES_URL` was not configured. Its prerequisite and skip logic are unchanged; earlier Phase 2 evidence records a configured pass. Docker/PostgreSQL were not repeated for this CLI/report increment. New installed smoke tests are wired into CI, but no hosted CI result is claimed. Local Vercel packaging does not claim a hosted deployment. Native macOS/Homebrew, Windows/WSL and general-project dynamic adapters were not exercised. The console is synchronous and uses Ctrl+C for active-work cancellation. Arbitrary untrusted-repository execution remains disabled pending verified VM-grade or equivalent hardened isolation; Docker Compose is not that boundary. No deployment, merge, release, package publication, credential change, broader scanning or security/network-policy expansion was performed.

@@ -8,9 +8,10 @@ from collections import Counter
 from packages.core.demo_runtime import DemoRuntime
 from packages.core.doctor import show_setup
 from packages.core.project import ProjectSession
+from packages.core.project_demo import run_project_demo
 from packages.core.repl_commands import COMMANDS, canonical, display, interactive, show_help, terminal_input, unknown, validate
 
-MENU = "1  Demo     2  Check setup     /init     /project PATH     /help     /quit"
+MENU = "1  Demo (bundled)     2  Check setup     /demo (your project)     /help     /quit"
 
 
 def run(input_fn=input, output=None, runtime_factory=DemoRuntime, project_factory=ProjectSession):
@@ -41,6 +42,8 @@ def console(input_fn, output, runtime_factory, project_factory):
             if not words:
                 continue
             command = canonical(words[0])
+            if words[0].removeprefix('/') == '1' and len(words) == 1:
+                words = ['demo', 'bundled']
             if command not in COMMANDS:
                 unknown(command, output)
                 continue
@@ -117,6 +120,16 @@ def console(input_fn, output, runtime_factory, project_factory):
                     elif command == 'report':
                         output('Project report: ' + display(project.export('json' if words[1:] else 'markdown')))
                         output('Review source paths and findings before sharing. Static results are hypotheses.')
+                elif command == 'demo' and not words[1:]:
+                    if not project:
+                        selected = project_factory(os.getcwd(), output=output)
+                        if runtime:
+                            runtime.close()
+                            runtime = None
+                        project = selected
+                    scan, findings = None, []
+                    run_project_demo(project, output)
+                    output('Next: /status · /routes · /findings · /inspect NUMBER · /history · /report [json]')
                 elif command == 'demo':
                     if project:
                         project.close()
@@ -156,15 +169,10 @@ def console(input_fn, output, runtime_factory, project_factory):
                     output("Patch verification: " + ("passed; awaiting review" if patch["verification"]["passed"] else "incomplete or failed") + ". Review the diff in the workspace.")
                     findings = runtime.request("GET", "/scans/" + scan["id"]).json()["findings"]
                 elif command == "report" and runtime and scan:
-                    json_format = words[1:] == ['json']
-                    path = runtime.run_dir / ("report-" + scan["id"] + ('.json' if json_format else '.md'))
-                    response = runtime.request('GET', '/reports/' + scan['id'],
-                                               params={'format': 'json' if json_format else 'markdown'})
-                    with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), 'w') as stream:
-                        stream.write(response.text)
-                    output("Sanitized report: " + display(path))
+                    output('Sanitized report: ' + display(export_demo_report(runtime, scan['id'],
+                                                                            'json' if words[1:] else 'markdown')))
                 else:
-                    output('No compatible context for /' + command + '. Use /init or /project PATH for project commands; /demo for demo checks.')
+                    output('No compatible context for /' + command + '. Use /demo for project analysis; /demo bundled for synthetic demo checks.')
             except KeyboardInterrupt:
                 if project:
                     output('Cancelled. Project coverage is incomplete; type scan to retry or history to inspect.')
@@ -178,9 +186,9 @@ def console(input_fn, output, runtime_factory, project_factory):
                     runtime.close()
                     runtime = None
                 scan, findings = None, []
-                output("Cancelled. Local demo services stopped; type demo to start again.")
+                output("Cancelled. Local demo services stopped; type demo bundled to start again.")
             except Exception as exc:
-                if project or command in ('project', 'init'):
+                if project or command in ('project', 'init') or (command == 'demo' and not words[1:]):
                     output(f"Project command incomplete ({type(exc).__name__}): {display(exc)}" if isinstance(exc, (ValueError, TimeoutError))
                            else f"Project command incomplete ({type(exc).__name__}); inspect private logs. Coverage is incomplete.")
                     continue
@@ -213,6 +221,39 @@ def wait_for_scan(runtime, scan_id, output):
         time.sleep(0.5)
     runtime.request("POST", "/scans/" + scan_id + "/cancel")
     raise TimeoutError("Investigation exceeded the console time limit and was cancelled")
+
+
+def export_demo_report(runtime, scan_id, format='markdown'):
+    path = runtime.run_dir / ('report-' + scan_id + ('.json' if format == 'json' else '.md'))
+    response = runtime.request('GET', '/reports/' + scan_id, params={'format': format})
+    with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), 'w') as stream:
+        stream.write(response.text)
+    return path
+
+
+def run_bundled_demo(browser=False, output=print, runtime_factory=DemoRuntime):
+    """One-shot CLI walkthrough; retain evidence and always close owned services."""
+    runtime = runtime_factory(output=output)
+    scan = None
+    try:
+        runtime.start()
+        scan = runtime.request('POST', '/demo/start', json={'approved': True, 'browser': browser}).json()
+        wait_for_scan(runtime, scan['id'], output)
+        saved = runtime.request('GET', '/scans/' + scan['id']).json()
+        show_findings(saved['findings'], output)
+        show_status(None, runtime, saved, saved['findings'], output)
+        for format in ('markdown', 'json'):
+            output('Sanitized report: ' + display(export_demo_report(runtime, scan['id'], format)))
+        output('Bundled demo finished. Services stop now; reports and evidence remain for review.')
+    except KeyboardInterrupt:
+        if scan:
+            try:
+                runtime.request('POST', '/scans/' + scan['id'] + '/cancel')
+            except Exception:
+                pass
+        raise
+    finally:
+        runtime.close()
 
 
 def show_findings(findings, output):

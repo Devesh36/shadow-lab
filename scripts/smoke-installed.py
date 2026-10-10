@@ -11,7 +11,7 @@ from pathlib import Path
 base = Path(os.environ['SHADOWLAB_HOME']).resolve()
 with tempfile.TemporaryDirectory() as working:
     result = subprocess.run([str(Path(sys.argv[1]).resolve()), 'Repl'], cwd=working,
-                            input='/demo\n/status\n/inspect 1\n/export json\nreport\n/quit\n', text=True, capture_output=True,
+                            input='/demo bundled\n/status\n/inspect 1\n/export json\nreport\n/quit\n', text=True, capture_output=True,
                             env={**os.environ, 'SHADOWLAB_NO_OPEN': '1'}, timeout=1000)
     print(result.stdout)
     assert result.returncode == 0, result.stderr

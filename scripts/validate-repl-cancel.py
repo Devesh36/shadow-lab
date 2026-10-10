@@ -37,7 +37,7 @@ with tempfile.TemporaryDirectory() as cwd:
         raise TimeoutError('Console did not reach ' + fragment)
     try:
         wait_for('1  Demo')
-        process.stdin.write('/demo\n')
+        process.stdin.write('/demo bundled\n')
         process.stdin.flush()
         wait_for('Next:', timeout=900)
         run = Path(re.search(r'Private demo records and logs: (.+)', ''.join(transcript)).group(1))

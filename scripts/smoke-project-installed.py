@@ -23,9 +23,9 @@ def main():
                'SHADOWLAB_LLM_API_KEY': 'synthetic-operator-secret', 'SHADOWLAB_NO_OPEN': '1'}
         for name in ('PYTHONPATH', 'SHADOWLAB_REPOSITORY_ROOT'):
             env.pop(name, None)
-        commands = '/project "Mixed Case Project"\n/status\n/scan\n/routes\n/findings\n/inspect 1\n/history\n/export json\n/stop\n'
+        commands = '/project "Mixed Case Project"\n/status\n/demo\n/routes\n/findings\n/inspect 1\n/history\n/export json\n/stop\n'
         commands += 'project "Mixed Case Project"\nhistory\nuse 1\nreport\nquit\n'
-        result = subprocess.run([executable, 'repl'], cwd=root, env=env, input=commands,
+        result = subprocess.run([executable], cwd=root, env=env, input=commands,
                                 text=True, capture_output=True, timeout=180)
         assert result.returncode == 0, 'Installed console exited unsuccessfully'
         for expected in ('Source analysis completed', 'INCONCLUSIVE', 'GET /api/profile', 'Scanner semgrep: completed',
@@ -49,8 +49,23 @@ def main():
         assert initialized.returncode == 0
         assert 'Project selected: ' + str(project) in initialized.stdout
         assert 'Context: project · ' + str(project) in initialized.stdout
+        demo = subprocess.run([executable, 'demo'], cwd=project,
+                              env={**env, 'SHADOWLAB_REPOSITORY_ROOT': str(root)},
+                              text=True, capture_output=True, timeout=150)
+        assert demo.returncode == 0 and 'Project demo finished' in demo.stdout
+        exported = subprocess.run([executable, 'report', '--project', '.', '--format', 'json'], cwd=project,
+                                  env={**env, 'SHADOWLAB_REPOSITORY_ROOT': str(root)},
+                                  text=True, capture_output=True, timeout=30)
+        assert exported.returncode == 0
+        cli_payload = json.loads(exported.stdout)
+        assert cli_payload['scan']['project_demo']['browser_validation']['status'] == 'unsupported'
+        assert cli_payload['scan']['project_demo']['patch_verification']['status'] == 'unsupported'
+        assert cli_payload['scan']['target'] is None
+        assert 'synthetic-operator-secret' not in demo.stdout + exported.stdout
+        assert hashlib.sha256(route.read_bytes()).hexdigest() == before and not (project / 'SHOULD_NOT_RUN').exists()
         print(json.dumps({'installed_project_repl': 'passed', 'history_reopen': 'passed',
                           'init_with_broader_allowed_root': 'passed',
+                          'project_demo_repl_and_cli': 'passed', 'project_cli_report': 'passed',
                           'source_unchanged': True, 'operator_state_isolated': True,
                           'scanner': payload['scan']['scanners']['semgrep']['status'],
                           'findings': len(payload['findings']), 'verdict': 'INCONCLUSIVE'}))

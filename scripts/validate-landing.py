@@ -144,6 +144,10 @@ async def main():
             await expect(page.locator('#project')).to_contain_text('Static hypotheses remain INCONCLUSIVE')
             await expect(page.locator('#review')).to_contain_text('requires your review')
             await expect(page.locator('#commands')).to_contain_text('/inspect NUMBER')
+            await expect(page.locator('#commands')).to_contain_text('demo bundled / 1')
+            await expect(page.locator('#project')).to_contain_text('automatic fixes for arbitrary projects are unsupported')
+            await page.get_by_role('button', name='Copy Project demo CLI', exact=True).click()
+            assert 'shadow demo\nshadow findings --project .' in await page.evaluate('navigator.clipboard.readText()')
             await expect(page.locator('#commands')).to_contain_text('input history is never saved to disk')
             await page.get_by_role('button', name='Copy Slash command workflow', exact=True).click()
             assert await page.evaluate('navigator.clipboard.readText()') == '/init\n/status\n/scan\n/findings\n/inspect 1\n/export json\n/quit'

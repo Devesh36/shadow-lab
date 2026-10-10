@@ -21,6 +21,11 @@ def report(store, scan_id, format="markdown"):
             text.append(f"{name}: {result['status']}" + (f" — {result['reason']}" if result.get('reason') else '') +
                         (f"; parse errors: {result['errors']}" if result.get('errors') else ''))
         text += ['', 'Completed analysis does not establish complete security coverage.', '']
+    if scan.get('project_demo'):
+        text += ['## Project demo coverage', '']
+        for name, result in scan['project_demo'].items():
+            text.append(f"{name}: {result['status']}" + (f" — {result['reason']}" if result.get('reason') else ''))
+        text += ['', 'Unsupported actions were not executed. Static hypotheses are not runtime proof.', '']
     for finding in findings:
         text += [f"## {finding['title']}", "", f"Severity: {finding['severity']} | State: {finding['state']}",
                  f"Category: {finding['category']} | CWE: {finding.get('cwe') or 'n/a'}",

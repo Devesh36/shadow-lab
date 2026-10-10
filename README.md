@@ -23,13 +23,14 @@ shadow repl
 
 If `shadow` is not on your PATH after installation, run `uv tool update-shell` and reopen your terminal.
 
-Type **`demo`** or **`1`** at `shadow>`. ShadowLab prepares its bundled synthetic application, starts three private loopback services, runs a real investigation, and opens the workspace. `shadow Repl` also works; `shadowlab` remains a compatibility alias. Git-based uv installation and the HEAD formula work without a PyPI package or stable release. Homebrew installation has not been tested on macOS in this Linux workspace; its formula is syntax-checked and has a native installation CI job.
+Type **`demo bundled`** or **`1`** at `shadow>`. ShadowLab prepares its bundled synthetic application, starts three private loopback services, runs a real investigation, and opens the workspace. Bare **`demo`** instead runs the source-only walkthrough on your selected project or launch directory. Running `shadow` without arguments opens the console; `shadow Repl` and the `shadowlab` compatibility alias also work. Git-based uv installation and the HEAD formula work without a PyPI package or stable release. Homebrew installation has not been tested on macOS in this Linux workspace; its formula is syntax-checked and has a native installation CI job.
 
 For uv installs, first install **Node.js 22+, npm and Git**. Python 3.12+ is required; uv can provision it. Homebrew declares these runtime dependencies. First demo preparation requires internet access to fetch locked npm packages and may take several minutes. Later runs reuse the build. The guided launcher supports macOS/Linux; native macOS behavior has not been exercised here. On Windows, use a Linux environment such as WSL.
 
 | Console command | Action |
 | --- | --- |
-| `demo` / `1` | Authorize bounded tests of the bundled synthetic local app and open its investigation |
+| `demo` | Discover routes, analyze source, show findings and coverage, and export both reports for the selected/launch project |
+| `demo bundled` / `1` | Authorize bounded tests of the bundled synthetic local app and open its investigation |
 | `demo browser` | Repeat with isolated anonymous/Alice/Bob browser sessions; Chromium is required |
 | `project PATH` | Select a project for isolated source-only analysis; quote paths with spaces |
 | `scan` / `routes` | Analyze the selected project / inspect discovered routes |
@@ -97,7 +98,29 @@ Project sessions read source and run the installed local Semgrep rules. They nev
 
 The selected directory must be inside `SHADOWLAB_REPOSITORY_ROOT`, which defaults to the directory where you launched the console. From a parent directory, `project "Mixed Case Project"` preserves spaces and case. Project history and exports live in private `SHADOWLAB_HOME/projects/<path-hash>/` storage, separate from demo runs and the operator database. Reopening the same path restores its latest scan; `history` numbers are newest first and `use 2` selects the preceding scan. Exported source paths and findings should be reviewed before sharing.
 
-Only one scan per project can run at a time. Ctrl+C stops the analysis worker and its scanner processes, records incomplete coverage, and lets you retry with `scan`. Failed scans stay visible in history and never inherit the previous scan's verdict. `stop` deselects the project but retains its history. `demo` switches back to the shipped synthetic app; `fix NUMBER` is available only there. The standalone CLI remains supported.
+Only one scan per project can run at a time. Ctrl+C stops the analysis worker and its scanner processes, records incomplete coverage, and lets you retry with `scan` or `demo`. Failed scans stay visible in history and never inherit the previous scan's verdict. `stop` deselects the project but retains its history. `demo bundled` switches back to the shipped synthetic app; `fix NUMBER` is available only there.
+
+## Run a project walkthrough from the CLI
+
+From your repository directory, use either the console or a one-shot command:
+
+```bash
+shadow
+# At shadow>: demo
+```
+
+```bash
+shadow demo
+shadow demo "./My Project"
+shadow findings --project .
+shadow report --project . --format json
+```
+
+`demo` uses the selected project when one is active; otherwise it selects the actual launch directory, still enforcing `SHADOWLAB_REPOSITORY_ROOT`. CLI paths resolve relative to the launch directory. It runs the available source workflow and exports private Markdown and JSON reports automatically. Missing Next.js route coverage, unavailable/failed scanners, disabled dependency advisories, and unsupported arbitrary-project browser/patch verification are recorded explicitly in output and both reports. No findings does not mean the repository is secure. It never installs dependencies, launches your application, executes its scripts or automatically fixes it.
+
+The CLI uses the same private project history as the REPL. `findings --project PATH` reads that project's latest scan, and `report --project PATH --scan-id ID --format json` can select a scan in that same project's store. Without `--project`, existing `findings` and `report` retain their separate operator-state behavior.
+
+For the reviewed synthetic runtime demonstration, use `shadow demo --bundled` or `shadow demo --bundled --browser`. These one-shot commands stop their services after exporting both reports; use `shadow repl` and `demo bundled` to keep the local workspace open for explicit patch review. Browser mode needs Chromium. Project paths cannot be combined with `--bundled`; `--browser` alone is rejected.
 
 ## Start from a checkout
 
