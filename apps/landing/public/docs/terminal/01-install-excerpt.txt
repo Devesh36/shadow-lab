@@ -1,0 +1,15 @@
+$ uv tool install --python 3.12 "git+https://github.com/Devesh36/shadow-lab.git@main"
+Resolved 135 packages in 1.72s
+   Updating https://github.com/Devesh36/shadow-lab.git (main)
+Downloading botocore (15.3MiB)
+ Downloaded botocore
+    Updated https://github.com/Devesh36/shadow-lab.git (2392b1900ef2b48d33fc547f83a6b23ca77eee24)
+   Building shadowlab @ git+https://github.com/Devesh36/shadow-lab.git@2392b1900ef2b48d33fc547f83a6b23ca77eee24
+      Built shadowlab @ git+https://github.com/Devesh36/shadow-lab.git@2392b1900ef2b48d33fc547f83a6b23ca77eee24
+Prepared 135 packages in 1.39s
+Installed 135 packages in 194ms
+
+[... package list omitted; installation excerpt ...]
+
+Installed 2 executables: shadow, shadowlab
+warning: `$UV_TOOL_BIN_DIR` is not on your PATH. To use installed tools, run `export PATH="$UV_TOOL_BIN_DIR:$PATH"` or `uv tool update-shell`.

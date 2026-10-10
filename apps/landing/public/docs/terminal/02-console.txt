@@ -1,0 +1,11 @@
+$ shadow repl
+ShadowLab — evidence-driven security investigations
+1  Demo     2  Check setup     help     quit
+shadow> doctor
+Setup: node found, npm found, git found
+Demo needs Node.js 22+, npm and Git. Browser demo also needs Playwright Chromium.
+shadow> help
+demo [browser] · findings · fix NUMBER · report · stop · doctor · help · quit
+Choosing Demo authorizes bounded checks of the bundled synthetic local app.
+fix NUMBER explicitly approves a disposable patch experiment; every patch needs review.
+shadow>

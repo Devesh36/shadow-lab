@@ -1,0 +1,71 @@
+$ cd ~/my-nextjs-app
+$ shadow init
+Initialized ~/my-nextjs-app/.shadowlab; execution permissions are managed in saved settings.
+
+$ shadow analyze .
+{
+  "routes": [
+    {
+      "path": "/api/admin",
+      "methods": [
+        "GET"
+      ],
+      "source": {
+        "file": "app/api/admin/route.ts",
+        "line": 1
+      },
+      "router": "app",
+      "authentication_observed": false,
+      "ownership_observed": false,
+      "inputs": [],
+      "database_calls": [],
+      "sensitive_fields": [],
+      "environment_variables": [],
+      "server_action": false
+    }
+  ],
+  "middleware": [],
+  "server_actions": [],
+  "dependencies": {},
+  "parse_errors": [],
+  "commit": "2392b1900ef2b48d33fc547f83a6b23ca77eee24",
+  "analysis_limitations": "Framework patterns are heuristic; middleware, imported helpers, aliases, roles, and data flows need review.",
+  "graph": {
+    "nodes": [
+      {
+        "id": "/api/admin",
+        "kind": "route",
+        "source": {
+          "file": "app/api/admin/route.ts",
+          "line": 1
+        },
+        "authentication_observed": false,
+        "sensitive_resources": []
+      }
+    ],
+    "edges": [
+      {
+        "from": "/api/admin",
+        "to": "app/api/admin/route.ts",
+        "relation": "implemented_by"
+      }
+    ]
+  }
+}
+
+$ shadow scan --repository .
+[... excerpt: scan mode, status and scanner outcomes ...]
+  "dynamic": false,
+  "status": "completed",
+      "status": "completed",
+      "status": "unavailable",
+      "reason": "Optional OSV-Scanner binary is absent"
+
+$ shadow findings
+[... excerpt: finding titles and states ...]
+    "title": "Endpoint may be missing authentication",
+    "state": "INCONCLUSIVE",
+    "title": "Security headers may be missing",
+    "state": "INCONCLUSIVE",
+
+$ shadow report --format markdown > shadow-report.md

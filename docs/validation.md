@@ -380,3 +380,92 @@ A new `landing-packaging` CI job installs the pinned CLI into the runner's tempo
 | Cloud project settings / redeployment | Not inspected or performed; account access is unavailable | User must clear any saved override and redeploy |
 
 The provider builder check now covers the packaging stage that plain `next build` missed. It is still a local invocation of provider code, not proof of successful cloud redeployment, current project settings or delivered hosted headers. No credentials, permissions, scanner policy, database, local API or dashboard source changed.
+
+## Public documentation and terminal walkthrough — 2026-10-10
+
+The static landing site now has a separate `/docs/` page, linked from its navigation and installation box. It documents uv/Homebrew installation and updates, prerequisites, `shadow repl` / `shadow Repl`, the synthetic demo, explicit disposable patch approval, reports and cleanup, optional Chromium validation, and source-only analysis in a user's Next.js project. The existing API, dashboard, CLI, demo, execution policies and credentials are unchanged. `trailingSlash: true` exports `docs/index.html` for direct navigation/reload on ordinary static hosts. Vercel remains landing-only, with the Output Directory override disabled and no application bindings or secrets.
+
+### Actual terminal captures
+
+A fresh GitHub-main uv installation was made into isolated tool directories. The installed source was **`2392b1900ef2b48d33fc547f83a6b23ca77eee24`**. A private PTY driver launched that installed `shadow` from a disposable working directory, with a minimal child environment, `SHADOWLAB_NO_OPEN=1`, a separate `SHADOWLAB_HOME`, and compatible system Chromium. It sent these fixed console commands and waited for each real prompt/result:
+
+```text
+shadow repl
+shadow> doctor
+shadow> help
+shadow> demo
+shadow> findings
+shadow> fix 1
+shadow> report
+shadow> demo browser
+shadow> stop
+shadow> quit
+```
+
+The initial HTTP demo completed with **four confirmed findings**. `fix 1` ran the supported authentication patch on its own disposable copy: **four verification checks passed**, including preserved owner access, and the finding remained **AWAITING_REVIEW**. The Markdown export exists in the private run directory. The subsequent browser scan completed with **11 assertions** across authentication (**3**), object authorization (**5**) and sensitive fields (**3**), and all three browser verdicts were **CONFIRMED**. Header reproduction uses HTTP evidence, not a separate browser identity case. After `stop`/`quit`, the console exited successfully and all **six observed owned listener ports** (including the temporary patch ports) were closed. No patch was merged.
+
+A separate disposable synthetic Next.js source project contained only a simple GET route returning public fixture data. These standalone commands ran from that project, without a dynamic target or project execution:
+
+```bash
+shadow init
+shadow analyze .
+shadow scan --repository .
+shadow findings
+shadow report --format markdown > shadow-report.md
+head -n 10 shadow-report.md
+```
+
+Route discovery and the scan completed. Semgrep completed with zero errors; the optional OSV binary was **unavailable**, which is shown in the published excerpt and private result receipt. Both resulting static hypotheses were **INCONCLUSIVE**, not confirmed vulnerabilities. The report was exported and read successfully. This fixture is inside the disposable validation directory under the checkout; route discovery therefore records the containing repository's source commit, rather than a separate synthetic Git commit.
+
+**Nine published PNGs are screenshots of actual sanitized terminal recordings rendered in Chromium for readability.** They are not hand-authored example results. The installation and project-analysis images explicitly identify their excerpts; their downloadable transcripts retain fuller actual output. Private paths and disposable identifiers were normalized before rendering. The explicit publication set was checked against both newly generated local API-token values and synthetic credential/sensitive-value fixtures; no such values, bearer strings or workspace paths are published. Full operational logs, databases, patch worktrees and token files remain ignored/private.
+
+### Commands, prerequisites and results
+
+Commands ran from `/workspace/shadow-lab`, except the disposable console/project sessions described above. Prerequisites were Node.js **24.19.0**, npm **11.9.0**, Git, uv with Python **3.12**, the existing repository Python dependencies, Chromium `/usr/bin/chromium`, and the installed Vercel CLI **63.1.0** / `@vercel/next` **22.0.0**. Locked landing dependencies were already installed. Installation fetched the authorized GitHub repository and package registries; security/network permissions were not broadened.
+
+```bash
+UV_CACHE_DIR=/workspace/.cache/uv \
+UV_TOOL_DIR=/workspace/shadow-lab/.shadowlab/docs-tools \
+UV_TOOL_BIN_DIR=/workspace/shadow-lab/.shadowlab/docs-bin \
+  uv tool install --reinstall --python 3.12 \
+  'git+https://github.com/Devesh36/shadow-lab.git@main'
+
+# Private capture drivers; output is not published wholesale:
+PYTHONPATH=. .venv/bin/python .shadowlab/docs-capture/capture.py
+PYTHONPATH=. .venv/bin/python .shadowlab/docs-capture/project-capture.py
+PYTHONPATH=. .venv/bin/python .shadowlab/docs-capture/export.py
+
+# Reproducible PNG rendering from the committed sanitized transcripts:
+SHADOWLAB_CHROMIUM_PATH=/usr/bin/chromium \
+  .venv/bin/python scripts/render-terminal-docs.py
+NEXT_TELEMETRY_DISABLED=1 npm --prefix apps/landing run build
+npm --prefix apps/landing run typecheck
+npm_config_cache=/workspace/.cache/npm NODE_USE_ENV_PROXY=1 \
+  node scripts/check-landing-vercel.cjs \
+  /workspace/.cache/shadowlab-vercel-cli/node_modules/@vercel/next
+
+# Existing static preview; finish the build before checking it:
+python3 -m http.server 3100 --bind 127.0.0.1 --directory apps/landing/out
+SHADOWLAB_CHROMIUM_PATH=/usr/bin/chromium \
+  .venv/bin/python scripts/validate-landing.py
+.venv/bin/ruff check packages apps/api tests scripts
+git diff --check
+```
+
+| Check | Final result | Evidence |
+| --- | --- | --- |
+| Fresh GitHub uv installation and guided REPL | Passed, including real demo, patch approval/verification, export and exit | Private `install.log`, `capture.log`; sanitized `results.json` under `.shadowlab/docs-capture/` |
+| Real multi-identity browser demo | Passed; three confirmed browser cases, 11 assertions | `.shadowlab/docs-capture/results.json`; private saved run DB; published `07-browser.png` / `.txt` |
+| Source-only project workflow | Passed, two INCONCLUSIVE hypotheses; optional OSV unavailable honestly retained | `.shadowlab/docs-capture/project-checks.json`, `results.json`; published `09-project.png` / `.txt` |
+| Nine PNGs / transcripts / credential check | Passed; published text checked before rendering | `apps/landing/public/docs/terminal/manifest.json` and explicit PNG/text assets |
+| Landing production build / TypeScript | Passed; `/` and `/docs` are static, about 2.1 MiB exported site | `.shadowlab/docs-capture/landing-build.log`, `typecheck.log`; ignored `apps/landing/out/` |
+| Real Vercel Next.js packaging | Passed; landing/docs HTML and all nine PNG/transcript pairs present, zero functions; old `out` override rejected as expected | `.shadowlab/docs-capture/vercel-packaging.log`; `.shadowlab/vercel-manifest-fix/packaging-check.json` |
+| Real Chromium static-site checks | **8 checks passed**, zero final failures: homepage/docs 200; application/API routes 404; desktop/mobile navigation/reload, copied commands, all nine images loaded, transcript download, production CSP and no page errors/API calls | `.shadowlab/docs-capture/static-browser-final.log`; `.shadowlab/vercel-validation/static-checks.json` |
+| Visual inspection | Passed; desktop guide, mobile gallery and actual terminal rendering inspected | `.shadowlab/vercel-validation/docs-desktop.png`, `docs-demo-section.png`, `docs-mobile.png`, `docs-mobile-gallery.png`; public terminal PNGs |
+| Python lint / whitespace | Passed | Commands above |
+| Original 72-test application suite / Docker / PostgreSQL | Not repeated for this static docs/assets increment; preceding full suite passed 72 with zero skips | Preserved application evidence above |
+| Native macOS Homebrew / Windows WSL / hosted Vercel delivery | Not run in this Linux workspace; no deployment or hosted header claim | Limitations below |
+
+The first static probe ran before the production build finished writing the new export and observed `/docs/` **404**; waiting for build completion and rerunning passed. The mobile screenshot helper was also adjusted to wait for lazy-loaded gallery images after reload, rather than capturing an unloaded placeholder. These were local validation sequencing corrections; final browser checks and provider packaging passed.
+
+The optional `test_postgres_persistence_if_configured` is unchanged. It passed in the preceding database-enabled full suite; this docs-only increment adds no PostgreSQL requirement or new skips and does not claim a fresh database/full-suite run. Homebrew commands are documented from the shipped formula; the public recording is specifically the verified Linux/uv path. WSL is a POSIX option, not a tested native Windows launcher. Browser tests apply the committed production headers locally and restrict all requests to the fixed loopback preview; they do not verify actual Vercel project settings or hosted header delivery. No arbitrary untrusted repository code was executed, and Docker Compose is not asserted as VM-grade isolation.

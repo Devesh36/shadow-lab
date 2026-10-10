@@ -1,0 +1,92 @@
+{
+  "recordedAt": "2026-10-10",
+  "platform": "Linux",
+  "sourceCommit": "2392b1900ef2b48d33fc547f83a6b23ca77eee24",
+  "method": "Actual subprocess/PTY output, sanitized then rendered in Chromium; commands are never simulated.",
+  "normalization": "Private paths and disposable identifiers replaced with placeholders; excerpts explicitly marked.",
+  "recordings": [
+    {
+      "id": "01-install",
+      "number": "01",
+      "title": "Install with uv",
+      "description": "Actual GitHub main installation in isolated tool directories. The image is an excerpt; the transcript contains the full package list.",
+      "alt": "Successful uv installation ending with two executables, shadow and shadowlab.",
+      "screen": "01-install-excerpt.txt",
+      "width": 1100,
+      "height": 617
+    },
+    {
+      "id": "02-console",
+      "number": "02",
+      "title": "Open the console",
+      "description": "The installed CLI menu, setup check, help and explicit demo authorization rules.",
+      "alt": "ShadowLab REPL showing Node, npm and Git found, with supported commands.",
+      "width": 1100,
+      "height": 474
+    },
+    {
+      "id": "03-demo",
+      "number": "03",
+      "title": "Run the demo",
+      "description": "First setup builds the bundled apps, then the HTTP investigation confirms four findings.",
+      "alt": "Actual demo terminal showing completed stages and four confirmed synthetic findings.",
+      "width": 1100,
+      "height": 674
+    },
+    {
+      "id": "04-findings",
+      "number": "04",
+      "title": "Inspect the findings",
+      "description": "Numbered results identify the supported finding to review.",
+      "alt": "Findings command showing missing authentication, object authorization, sensitive fields and headers.",
+      "width": 1100,
+      "height": 360
+    },
+    {
+      "id": "05-patch",
+      "number": "05",
+      "title": "Verify a disposable patch",
+      "description": "fix 1 explicitly approves the authentication experiment. Verification passes and awaits review.",
+      "alt": "Terminal approving a disposable demo patch and reporting passed verification, awaiting review.",
+      "width": 1100,
+      "height": 275
+    },
+    {
+      "id": "06-report",
+      "number": "06",
+      "title": "Export the report",
+      "description": "The report command prints the saved Markdown path. Private directories and identifiers are normalized.",
+      "alt": "Report export showing a sanitized Markdown file under the private ShadowLab run directory.",
+      "width": 1100,
+      "height": 246
+    },
+    {
+      "id": "07-browser",
+      "number": "07",
+      "title": "Run browser validation",
+      "description": "A completed second investigation adds real browser identity checks for the three supported cases.",
+      "alt": "Browser demo terminal reaching browser_validation and completed, with four confirmed findings.",
+      "width": 1100,
+      "height": 588
+    },
+    {
+      "id": "08-stop",
+      "number": "08",
+      "title": "Stop and exit",
+      "description": "The owned demo services stop; saved evidence remains private.",
+      "alt": "Stop and quit commands confirming the local demo services have stopped.",
+      "width": 1100,
+      "height": 275
+    },
+    {
+      "id": "09-project",
+      "number": "09",
+      "title": "Analyze your own source",
+      "description": "A disposable synthetic Next.js project is scanned without execution. The image shows excerpts; static findings remain inconclusive.",
+      "alt": "Project CLI commands showing discovered route metadata, dynamic false, optional OSV unavailable and inconclusive findings.",
+      "screen": "09-project-excerpt.txt",
+      "width": 1100,
+      "height": 2213
+    }
+  ]
+}

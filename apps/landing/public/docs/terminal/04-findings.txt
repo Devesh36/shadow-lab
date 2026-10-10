@@ -1,0 +1,7 @@
+shadow> findings
+1. CONFIRMED — Endpoint may be missing authentication (/api/unprotected)
+2. CONFIRMED — Object access may omit ownership validation (/api/records/[id])
+3. CONFIRMED — Response may expose sensitive fields (/api/profile)
+4. CONFIRMED — Security headers may be missing (/)
+Confirmed findings have runtime evidence. Inconclusive findings need further validation.
+shadow>

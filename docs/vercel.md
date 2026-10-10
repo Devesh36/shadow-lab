@@ -1,6 +1,6 @@
 # Deploy only the ShadowLab landing page
 
-The public website lives in `apps/landing`, a standalone Next.js app with `output: 'export'`. It preserves the existing landing design and exports HTML, CSS and JavaScript. Demo/workspace calls to action point to installation instructions so visitors can run `shadow repl` locally. It has no API routes, database dependencies, service bindings or runtime functions. The original application in `apps/web`, FastAPI backend, REPL and synthetic demo remain intact.
+The public website lives in `apps/landing`, a standalone Next.js app with `output: 'export'`. It preserves the existing landing design and exports HTML, CSS and JavaScript. Its separate `/docs/` page explains installation, the REPL demo, findings/patch review/reports, optional browser validation, and source-only project analysis. Nine sanitized terminal recordings are included as PNGs with downloadable text transcripts. Demo/workspace calls to action point to installation instructions so visitors can run `shadow repl` locally. It has no API routes, database dependencies, service bindings or runtime functions. The original application in `apps/web`, FastAPI backend, REPL and synthetic demo remain intact.
 
 ## Vercel settings
 
@@ -8,7 +8,7 @@ The public website lives in `apps/landing`, a standalone Next.js app with `outpu
 2. Set **Root Directory: `apps/landing`**.
 3. Set **Framework Preset: Next.js** and **Build Command: `npm run build`**. **Disable the Output Directory override**, including any previously saved `out` value, so Vercel auto-detects the framework output. Use Node.js 22+ and the default npm installation, which uses the committed lockfile. This app is self-contained; source files outside its Root Directory are unnecessary.
 4. No application environment variables or credentials are needed. Do not add API tokens, LLM keys, database URLs or bindings for this website.
-5. Select **Deploy** and open the resulting `*.vercel.app` URL. Check the install tabs, clipboard button and mobile layout. `/api/v1/health`, `/app` and `/demo` should return 404 because only the landing website is published. Install ShadowLab locally for the interactive investigation demo.
+5. Select **Deploy** and open the resulting `*.vercel.app` URL. Check the install tabs, clipboard button and mobile layout. Open **Docs** (or append `/docs/`), reload it directly, and check its terminal screenshots/transcript links. `/api/v1/health`, `/app` and `/demo` should return 404 because only the landing website is published. Install ShadowLab locally for the interactive investigation demo.
 
 There is no repository-root `vercel.json` and no multi-service deployment. The configuration in `apps/landing/vercel.json` retains the existing production CSP, nosniff, no-referrer and frame-denial headers for the exported site. No global network/security permissions are changed.
 
@@ -25,10 +25,12 @@ npm --prefix apps/landing run typecheck
 python3 -m http.server 3100 --bind 127.0.0.1 --directory apps/landing/out
 ```
 
-Open `http://127.0.0.1:3100`. The static preview needs no Python application dependencies, running API, database or token. Python's basic preview server does not apply Vercel's configured security headers; verify their delivery after actual deployment. Stop it with Ctrl+C. For source development, run `npm --prefix apps/landing run dev`; production validation uses the exported assets.
+Open `http://127.0.0.1:3100`, or `http://127.0.0.1:3100/docs/` for the guide. `trailingSlash: true` exports the guide as `docs/index.html`, so direct loads work in simple static servers too. Wait for the build to finish before checking the preview. The static preview needs no Python application dependencies, running API, database or token. Python's basic preview server does not apply Vercel's configured security headers; verify their delivery after actual deployment. Stop it with Ctrl+C. For source development, run `npm --prefix apps/landing run dev`; production validation uses the exported assets.
 
 With the repository's Python dependencies and Playwright Chromium installed, run `uv run python scripts/validate-landing.py` while the static preview is running. `SHADOWLAB_CHROMIUM_PATH` can select an existing compatible browser. This helper checks only the fixed loopback website, applies the configured production headers to browser responses for local validation, and saves sanitized screenshots and results under `.shadowlab/vercel-validation/`.
 
-To test provider packaging without login or deployment, install the pinned Vercel CLI into a temporary directory and pass its builder path to `node scripts/check-landing-vercel.cjs /path/to/node_modules/@vercel/next`. The helper compiles a disposable copy with Vercel's Next.js adapter, checks the static Build Output v3 and absence of runtime functions, and confirms the former `out` override fails with the reported missing-manifest error. The `landing-packaging` CI job runs this check with Vercel CLI 63.1.0.
+To test provider packaging without login or deployment, install the pinned Vercel CLI into a temporary directory and pass its builder path to `node scripts/check-landing-vercel.cjs /path/to/node_modules/@vercel/next`. The helper compiles a disposable copy with Vercel's Next.js adapter, checks the static landing/docs HTML and all nine PNG/transcript assets in Build Output v3, verifies absence of runtime functions, and confirms the former `out` override fails with the reported missing-manifest error. The `landing-packaging` CI job runs this check with Vercel CLI 63.1.0.
+
+The published terminal transcripts in `apps/landing/public/docs/terminal/` are from the installed CLI; their manifest records source commit, platform, normalization and excerpt provenance. `scripts/render-terminal-docs.py` reproduces the PNGs from those reviewed, sanitized transcripts without executing their commands or making network requests. Keep raw demo state and operational logs private; do not copy a whole run directory into public assets.
 
 See [validation](validation.md) for observed build/browser/regression results and limitations. Cloud deployment and provider-side configuration need an authenticated Vercel account; no site has been deployed from this workspace.

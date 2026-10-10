@@ -17,7 +17,7 @@ async function main() {
   await fs.mkdir(evidence, { recursive: true });
   const workPath = await fs.mkdtemp(path.join(evidence, 'packaging-'));
   try {
-    for (const name of ['app', 'package.json', 'package-lock.json', 'next.config.ts', 'tsconfig.json', 'vercel.json']) {
+    for (const name of ['app', 'public', 'package.json', 'package-lock.json', 'next.config.ts', 'tsconfig.json', 'vercel.json']) {
       await fs.cp(path.join(source, name), path.join(workPath, name), { recursive: true });
     }
     await fs.symlink(path.join(source, 'node_modules'), path.join(workPath, 'node_modules'), 'dir');
@@ -35,6 +35,14 @@ async function main() {
     const manifest = JSON.parse(await fs.readFile(path.join(output, 'config.json'), 'utf8'));
     assert.equal(manifest.version, 3);
     assert.ok((await fs.stat(path.join(output, 'static/index.html'))).isFile());
+    const recordings = JSON.parse(await fs.readFile(path.join(source, 'public/docs/terminal/manifest.json'), 'utf8'));
+    const staticFiles = await fs.readdir(path.join(output, 'static'), { recursive: true });
+    assert.ok(staticFiles.includes('docs/index.html'), 'The standalone documentation must export an HTML page');
+    for (const recording of recordings.recordings) {
+      for (const extension of ['png', 'txt']) {
+        assert.ok((await fs.stat(path.join(output, 'static/docs/terminal', `${recording.id}.${extension}`))).isFile());
+      }
+    }
     const functions = await fs.readdir(path.join(output, 'functions')).catch(error => {
       if (error.code === 'ENOENT') return [];
       throw error;
@@ -50,10 +58,11 @@ async function main() {
     );
     await fs.writeFile(path.join(evidence, 'packaging-check.json'), JSON.stringify({
       builder: '@vercel/next', buildOutputVersion: 3, output: '.next/output', runtimeFunctions: 0,
-      landingHTML: true, knownBadOverride: 'NEXT_NO_ROUTES_MANIFEST',
+      landingHTML: true, docsHTML: true, terminalRecordings: recordings.recordings.length,
+      knownBadOverride: 'NEXT_NO_ROUTES_MANIFEST',
       limitations: ['Local provider builder, not a cloud deployment or project-settings inspection'],
     }, null, 2) + '\n');
-    console.log('Passed Vercel packaging: static landing, zero functions; former out override reproduces manifest failure');
+    console.log('Passed Vercel packaging: static landing and docs with terminal assets, zero functions; former out override reproduces manifest failure');
   } finally {
     await fs.rm(workPath, { recursive: true, force: true });
   }

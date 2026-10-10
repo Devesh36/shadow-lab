@@ -1,0 +1,3 @@
+shadow> report
+Sanitized report: $SHADOWLAB_HOME/runs/[run-id]/report-[id].md
+shadow>

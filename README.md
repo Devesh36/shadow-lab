@@ -69,7 +69,7 @@ Local persistence defaults to `.shadowlab/shadowlab.db`. `SHADOWLAB_DATABASE_URL
 
 Import this repository and select the branch containing `apps/landing`. Set **Root Directory to `apps/landing`**, framework **Next.js**, and build command **`npm run build`**. Leave the **Output Directory override disabled** so Vercel detects the Next.js output. Then select **Deploy**. No application environment variables or secrets are required.
 
-This separate app exports only the product website. Its demo links lead to local installation instructions; the API, dashboard, database and investigation engine stay in the local product. See [Vercel setup and local preview](docs/vercel.md).
+This separate app exports the product website and a **Docs** page at `/docs/`, with uv/Homebrew setup, a guided REPL walkthrough, project analysis instructions, and nine sanitized screenshots from actual terminal recordings. Its demo links lead to local installation instructions; the API, dashboard, database and investigation engine stay in the local product. See [Vercel setup and local preview](docs/vercel.md).
 
 ## Docker development with PostgreSQL
 

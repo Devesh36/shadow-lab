@@ -1,0 +1,4 @@
+shadow> fix 1
+Approving a disposable demo patch experiment. The source app stays unchanged.
+Patch verification: passed; awaiting review. Review the diff in the workspace.
+shadow>

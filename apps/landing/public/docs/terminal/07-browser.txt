@@ -1,0 +1,15 @@
+shadow> demo browser
+Running bounded checks against the bundled synthetic local app. No fixes are applied.
+Follow the investigation: http://127.0.0.1:60083/app?scan=[id]
+Investigation: queued
+Investigation: reconnaissance
+Investigation: validation
+Investigation: browser_validation
+Investigation: completed
+1. CONFIRMED — Endpoint may be missing authentication (/api/unprotected)
+2. CONFIRMED — Object access may omit ownership validation (/api/records/[id])
+3. CONFIRMED — Response may expose sensitive fields (/api/profile)
+4. CONFIRMED — Security headers may be missing (/)
+Confirmed findings have runtime evidence. Inconclusive findings need further validation.
+Next: findings · fix NUMBER · report · demo browser · quit
+shadow>

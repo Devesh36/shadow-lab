@@ -1,0 +1,4 @@
+shadow> stop
+Local demo stopped. Saved evidence remains in its private run directory.
+shadow> quit
+ShadowLab closed. Local demo services stopped.
