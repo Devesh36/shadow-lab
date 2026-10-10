@@ -143,6 +143,10 @@ async def main():
             assert 'shadow repl' in project_commands and 'project .\nscan' in project_commands and '--target' not in project_commands
             await expect(page.locator('#project')).to_contain_text('Static hypotheses remain INCONCLUSIVE')
             await expect(page.locator('#review')).to_contain_text('requires your review')
+            await expect(page.locator('#commands')).to_contain_text('/inspect NUMBER')
+            await expect(page.locator('#commands')).to_contain_text('input history is never saved to disk')
+            await page.get_by_role('button', name='Copy Slash command workflow', exact=True).click()
+            assert await page.evaluate('navigator.clipboard.readText()') == '/init\n/status\n/scan\n/findings\n/inspect 1\n/export json\n/quit'
             recordings = json.loads(Path('apps/landing/public/docs/terminal/manifest.json').read_text())['recordings']
             images = page.locator('.docs-gallery img')
             assert await images.count() == len(recordings) == 9

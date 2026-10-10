@@ -45,6 +45,7 @@
   "packages/core/models.py",
   "packages/core/project.py",
   "packages/core/repl.py",
+  "packages/core/repl_commands.py",
   "packages/core/report.py",
   "packages/core/service.py",
   "packages/db/__init__.py",

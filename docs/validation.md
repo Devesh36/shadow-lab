@@ -629,3 +629,64 @@ git diff --check
 | Investigation/API/PostgreSQL suite | Not repeated for this static website/history increment; the preceding application increment passed 91 tests with zero skips | Phase 2 evidence above |
 
 The existing PostgreSQL test's conditional skip remains unchanged: without `SHADOWLAB_TEST_POSTGRES_URL`, persistence is not verified. No Docker application rebuild or new database check is claimed for this static change. Tests exercised Chromium and local provider packaging, not every browser engine, a hosted CI run, a Vercel deployment or delivered cloud headers. The application, execution policy, target allowlists and explicit demo patch approval remain intact; arbitrary repository execution remains disabled.
+
+## Discoverable REPL commands — 10 October 2026 (IST)
+
+The console now accepts familiar slash commands alongside all existing bare commands. `/init` selects the launch directory, `/status` (alias `/context`) reports the active project/demo, selected scan, verdict counts and scanner status, and `/inspect NUMBER` shows a finding's verdict, source references and validation summary. `/help` groups commands by workflow; `/help fix` explains approval. `/clear` clears only an interactive terminal display, `/export` aliases `/report`, and `/report json` works for demo as well as project scans. Context prompts distinguish project and demo sessions. Unknown commands suggest a close match and never execute shell or natural-language input.
+
+One command registry validates arguments before any dispatch: extra demo/fix/quit arguments, invalid numbers and unsupported report formats cannot launch work or approve a patch. Choosing `/fix NUMBER` still explicitly approves only a supported disposable demo experiment, with subsequent review required. Ctrl+C/EOF/process cleanup, source-only project restrictions, target allowlists, outbound policy and scan limits remain intact. A new demo clears the prior selection before starting so a failed run cannot inherit old verdicts. Finding inspection excludes raw response/evidence/settings/token fields and escapes terminal control characters in source names and summaries. New demo exports use mode 0600.
+
+Interactive command/alias completion and arrow-key recall use Python's optional readline support without a new dependency. There is no persistent input-history file or project-path completion; console input history is cleared on exit and pre-existing caller readline history/completer settings are restored. Piped input and readline-free terminals retain fixed-command operation. `/clear` has an honest plain-text fallback outside a usable terminal. Native macOS/libedit and Windows/WSL were not exercised; installed pseudo-terminal validation ran on Linux.
+
+README and public Docs describe the workflow and approval rules. The Phases catalog resolves the previous pending entry to verified commit `01ea6891f45c5e7199a7d5d617ddaa1d1d40a78a`, preserves historical entries and adds this dated impact note. The nine existing screenshots remain genuine historical captures with their original provenance. CI adds a real installed pseudo-terminal check and now exercises slash commands in its installed project/demo smoke tests. The reviewed runtime inventory has 70 assets, including the new command registry; no dependency, lockfile, demo fixture or security manifest change was required.
+
+Prerequisites reused: Python 3.12, Node 24.19/npm 11.9, frozen installed dependencies, compatible Chromium `/usr/bin/chromium`, existing trusted demo/dashboard/API on ports 3001/3000/8000, static exported site on port 3100, local Vercel CLI 63.1 / `@vercel/next` 22, and the existing uv/npm caches. Commands needing local process/socket operation used individually approved execution; network/security permissions and credentials were not changed. The installed demo used a private new home and a link to the existing reviewed npm cache, then performed its normal locked installation and production builds.
+
+Commands executed from the repository root (test/build output saved under ignored `.shadowlab/repl-commands/`):
+
+```bash
+.venv/bin/pytest -q tests/unit/test_repl.py tests/unit/test_project.py tests/unit/test_doctor.py
+SHADOWLAB_TEST_TARGET=http://127.0.0.1:3001 \
+SHADOWLAB_TEST_DASHBOARD=http://127.0.0.1:3000 \
+SHADOWLAB_CHROMIUM_PATH=/usr/bin/chromium .venv/bin/pytest -q
+UV_CACHE_DIR=/workspace/.cache/uv uv build --offline --wheel
+.venv/bin/python scripts/check-bundle.py dist/shadowlab-0.1.0-py3-none-any.whl
+UV_CACHE_DIR=/workspace/.cache/uv \
+UV_TOOL_DIR="$PWD/.shadowlab/repl-commands/tools" \
+UV_TOOL_BIN_DIR="$PWD/.shadowlab/repl-commands/bin" \
+  uv tool install --offline --python 3.12 --reinstall-package shadowlab dist/shadowlab-0.1.0-py3-none-any.whl
+.venv/bin/python scripts/validate-repl-terminal.py .shadowlab/repl-commands/bin/shadow
+.venv/bin/python scripts/smoke-project-installed.py .shadowlab/repl-commands/bin/shadow
+mkdir -p .shadowlab/repl-commands/demo-home/cache
+ln -s "$PWD/.shadowlab/phase2/demo-home/cache/npm" .shadowlab/repl-commands/demo-home/cache/npm
+SHADOWLAB_HOME="$PWD/.shadowlab/repl-commands/demo-home" \
+  .venv/bin/python scripts/smoke-installed.py .shadowlab/repl-commands/bin/shadow
+SHADOWLAB_HOME="$PWD/.shadowlab/repl-commands/demo-home" \
+  .venv/bin/python scripts/validate-repl-cancel.py .shadowlab/repl-commands/bin/shadow
+npm --prefix apps/landing run test:phases
+NEXT_TELEMETRY_DISABLED=1 npm --prefix apps/landing run build
+npm --prefix apps/landing run typecheck
+SHADOWLAB_CHROMIUM_PATH=/usr/bin/chromium .venv/bin/python scripts/validate-landing.py
+node scripts/check-landing-vercel.cjs /workspace/.cache/shadowlab-vercel-cli/node_modules/@vercel/next
+.venv/bin/ruff check packages apps/api tests scripts
+git diff --check
+```
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Full application suite | **109 passed, 0 failed, 1 skipped** in 231.66 s; real multi-identity browser cases, disposable patch verifications, API denial/report tests and existing context/cancellation/redirect safeguards | `.shadowlab/repl-commands/full-suite.log` |
+| Final focused REPL/project/diagnostic tests | **46 passed, 0 failed/skipped** in 49.55 s; slash/bare aliases, quoted paths, status/inspection, invalid-argument denial, explicit approval, EOF/retry/cancellation, history isolation and terminal-state cleanup | `.shadowlab/repl-commands/focused-tests.log` |
+| Final wheel build/inventory | Passed; all 70 packaged assets byte-compared with current source, no private/generated files | `.shadowlab/repl-commands/wheel-build.log`, `install.log` |
+| Installed real pseudo-terminal | Passed; Tab completion, arrow-key recall, ANSI display clear, approval help and no caller-state creation outside checkout | `.shadowlab/repl-commands/terminal.json` |
+| Installed synthetic project | Passed; source-only scan, three INCONCLUSIVE hypotheses, Semgrep completed/OSV disabled, inspect/export/history reopen, unchanged source and isolated operator state | `.shadowlab/repl-commands/installed-project.json` |
+| Installed real synthetic demo | Passed; four expected CONFIRMED findings, status/inspection, sanitized JSON and Markdown exports, mode-0600 JSON, unchanged caller state and all three service ports closed | `.shadowlab/repl-commands/installed-demo.log` |
+| Installed interruption cleanup | Passed; `/fix 1` explicitly approved, one live disposable patch process observed before SIGINT, patch process terminated and all three service ports closed; no patch merged | `.shadowlab/repl-commands/cancellation.log` |
+| Phase history tests | **9 passed, 0 failed/skipped** | `.shadowlab/repl-commands/history-tests.log` |
+| Landing production build / TypeScript | Passed; landing and Docs remain static | `.shadowlab/repl-commands/landing-build.log`, `landing-typecheck.log` |
+| Real public-site browser regression | **11 passed**, including the new command reference/clipboard, all phase entries and prior keyboard/mobile/reduced-motion/no-JS checks; no API dependency | `.shadowlab/repl-commands/landing-browser.log`; `.shadowlab/vercel-validation/static-checks.json` |
+| Actual local Vercel adapter | Passed; landing/Docs/assets and Git-free phase snapshot exported, zero runtime functions; former output override rejected as expected | `.shadowlab/repl-commands/vercel-packaging.log`; `.shadowlab/vercel-manifest-fix/packaging-check.json` |
+| Lint / whitespace | Passed | Commands above |
+
+Initial failures were corrected before acceptance: the default sandbox denied the wheel resolver's connection; a subsequent inventory command read the older wheel and was not accepted as validation. A fresh offline build and byte comparison verified the actual changed wheel. The first landing build rejected an unsupported `id` prop on the existing Docs command component; removing it restored the build and browser check. A diagnostic summary is saved in `.shadowlab/repl-commands/initial-checks.json`.
+
+The skipped test is still `test_postgres_persistence_if_configured`: it requests `SHADOWLAB_TEST_POSTGRES_URL`, which was absent for this run. Its code/conditional status did not change; it passed with configured PostgreSQL in the earlier Phase 2 run. PostgreSQL and Docker were not repeated for this command/UI increment, and no fresh database/container result is claimed. There was no hosted CI run, deployment, release, stable package publication or macOS Homebrew installation. The console remains synchronous: cancellation during active work uses Ctrl+C, rather than pretending an idle `/cancel` command can interrupt it. Arbitrary untrusted-repository execution remains disabled; Docker Compose is not a VM-grade isolation boundary.

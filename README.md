@@ -36,10 +36,30 @@ For uv installs, first install **Node.js 22+, npm and Git**. Python 3.12+ is req
 | `history` / `use NUMBER` | List the ten latest project scans / select one for findings and export |
 | `findings` | Show the latest investigation's actual verdicts |
 | `fix NUMBER` | Explicitly approve a disposable patch experiment for a supported finding; review remains required |
-| `report` / `report json` | Export Markdown; JSON is available in project mode |
+| `report` / `report json` | Export private Markdown or JSON in either mode |
+| `/init` | Select the directory where you launched the console, equivalent to `project .` |
+| `/status` / `/context` | Show the active project/demo, selected scan, verdict count and scanner coverage |
+| `/inspect NUMBER` | Inspect a finding's verdict, source references and validation summary |
+| `/clear` | Clear an interactive terminal display without discarding results |
 | `doctor` / `2` | Check local launcher prerequisites |
 | `stop` | Stop local services, retaining saved evidence |
-| `help` / `quit` | Show commands / close the console and stop its services |
+| `help [COMMAND]` / `quit` | Show grouped or command-specific help / close the console and stop its services |
+
+Every command accepts an optional slash prefix: `/demo browser`, `/project "My Project"`, `/scan`, `/history`, `/use 2`, `/fix 1`, `/report json`, `/stop`. `/export` aliases `/report`, and `/exit` aliases `/quit`. Tab completes command names and the up/down arrows recall input in interactive terminals with Python's readline support; piped input and terminals without readline still work. Input history stays in this process and is not written to disk. Prompts show `shadow[project]>` or `shadow[demo]>` so you can see the current context. `/help fix` explains approval before you choose a patch.
+
+For a familiar command-driven workflow, start `shadow repl` in your project and type:
+
+```text
+/init
+/status
+/scan
+/findings
+/inspect 1
+/export json
+/quit
+```
+
+These are fixed commands backed by real workflows. Natural-language chat, shell escapes, arbitrary tools and automatic fixes are not supported. Invalid arguments are rejected before an action starts; Ctrl+C during work still cancels it. `/clear` changes only the display, while `/stop` closes the active context and preserves history.
 
 The REPL executes fixed actions, never arbitrary shell or Python input. Every launch gets fresh ports, a private API token and separate SQLite state. It copies only an explicit bundle of reviewed files into `~/.local/share/shadowlab`; `SHADOWLAB_HOME` overrides this location. `runs/` contains reports, logs, evidence and disposable patch worktrees; `bundles/` contains reusable builds. It preserves the current working directory, source checkout and existing operator database/settings. Quit, EOF and Ctrl+C clean up its service processes; Ctrl+C during an investigation cancels it. Patches are never applied to the bundled source, merged or deployed.
 

@@ -94,12 +94,19 @@
       "impact": "Added project selection, source-only scans, routes, findings, private history and reports. Improved diagnostics, cancellation and honest failure coverage; expanded installed-package and browser CI checks."
     },
     {
-      "commit": null,
-      "matchSubject": "Add dated development phases to landing page",
+      "commit": "01ea6891f45c5e7199a7d5d617ddaa1d1d40a78a",
       "date": "2026-10-10",
       "phase": "ongoing",
       "title": "A public record of every improvement",
       "impact": "Added Phases to the navigation and a dated development timeline with commit links and product-impact notes. Builds collect available Git history, and repository guidance keeps future work summaries current."
+    },
+    {
+      "commit": null,
+      "matchSubject": "Improve REPL with discoverable slash commands",
+      "date": "2026-10-10",
+      "phase": "phase2",
+      "title": "A more useful command-driven console",
+      "impact": "Added slash commands, context-aware prompts, grouped help, session status, finding inspection, terminal completion and JSON demo exports. Strict argument checks preserve explicit patch approval and existing cancellation safeguards."
     }
   ]
 }

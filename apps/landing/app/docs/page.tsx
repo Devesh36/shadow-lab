@@ -314,6 +314,17 @@ export default function Docs() {
 
           <section id="commands">
             <h2>Command reference</h2>
+            <p>
+              Use familiar slash commands such as <code>/init</code>,{' '}
+              <code>/status</code> and <code>/inspect 1</code>. Every existing
+              command also works with or without a slash. The prompt shows
+              whether you are in project or demo mode. Tab completes command
+              names and up/down arrows recall input when terminal editing is
+              available; input history is never saved to disk.
+            </p>
+            <Command label="Slash command workflow">
+              {'/init\n/status\n/scan\n/findings\n/inspect 1\n/export json\n/quit'}
+            </Command>
             <div className="docs-table">
               <table>
                 <caption>Inside shadow repl</caption>
@@ -325,6 +336,10 @@ export default function Docs() {
                 </thead>
                 <tbody>
                   {[
+                    ['/init', 'Select the directory where you launched the console (project .).'],
+                    ['/status / /context', 'Show the active context, selected scan and scanner coverage.'],
+                    ['/inspect NUMBER', 'Show a finding\'s source references, verdict and validation summary.'],
+                    ['/clear', 'Clear an interactive display while keeping the session and results.'],
                     ['project PATH', 'Select a project for source-only analysis.'],
                     ['scan / routes', 'Analyze the selected project / list saved routes.'],
                     ['history / use NUMBER', 'List recent project scans / select a saved scan.'],
@@ -346,13 +361,13 @@ export default function Docs() {
                       'Approve a disposable demo patch experiment; review its diff.',
                     ],
                     [
-                      'report / report json',
-                      'Export a private report; JSON is available in project mode.',
+                      'report / report json / /export json',
+                      'Export a private Markdown or JSON report in project or demo mode.',
                     ],
                     ['stop', 'Stop the demo services; retain saved evidence.'],
                     [
-                      'help',
-                      'Show available commands and the authorization rules.',
+                      'help [COMMAND]',
+                      'Show grouped help or details such as /help fix, including approval rules.',
                     ],
                     ['quit / exit / q', 'Exit and stop local demo services.'],
                   ].map(([command, meaning]) => (
@@ -366,6 +381,14 @@ export default function Docs() {
                 </tbody>
               </table>
             </div>
+            <p>
+              Commands dispatch fixed workflows. Natural-language requests,
+              shell escapes and arbitrary tools are not executed. Invalid
+              arguments are rejected before an action starts. <code>/fix NUMBER</code>{' '}
+              explicitly approves a disposable demo experiment; it still
+              requires your review. <code>/clear</code> keeps results;{' '}
+              <code>/stop</code> closes the active context and retains history.
+            </p>
             <p>
               Outside the REPL, <code>shadow --help</code> lists standalone
               commands, and <code>shadow doctor</code> checks the database and

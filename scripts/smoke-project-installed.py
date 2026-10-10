@@ -23,13 +23,13 @@ def main():
                'SHADOWLAB_LLM_API_KEY': 'synthetic-operator-secret', 'SHADOWLAB_NO_OPEN': '1'}
         for name in ('PYTHONPATH', 'SHADOWLAB_REPOSITORY_ROOT'):
             env.pop(name, None)
-        commands = 'project "Mixed Case Project"\nscan\nroutes\nfindings\nhistory\nreport json\nstop\n'
+        commands = '/project "Mixed Case Project"\n/status\n/scan\n/routes\n/findings\n/inspect 1\n/history\n/export json\n/stop\n'
         commands += 'project "Mixed Case Project"\nhistory\nuse 1\nreport\nquit\n'
         result = subprocess.run([executable, 'repl'], cwd=root, env=env, input=commands,
                                 text=True, capture_output=True, timeout=180)
         assert result.returncode == 0, 'Installed console exited unsuccessfully'
         for expected in ('Source analysis completed', 'INCONCLUSIVE', 'GET /api/profile', 'Scanner semgrep: completed',
-                         'Project report:', 'Selected scan:', 'ShadowLab closed'):
+                         'Project report:', 'Selected scan:', 'ShadowLab closed', 'Context: project', 'Finding 1:'):
             assert expected in result.stdout, f'Missing workflow result: {expected}'
         assert 'incomplete' not in result.stdout.casefold()
         reports = list((root / 'private/projects').glob('*/reports/*.json'))

@@ -46,6 +46,7 @@ jobs:
           uv build --wheel
           uv run python scripts/check-bundle.py dist/shadowlab-0.1.0-py3-none-any.whl
           uv tool install --python 3.12 dist/shadowlab-0.1.0-py3-none-any.whl
+          uv run python scripts/validate-repl-terminal.py "$UV_TOOL_BIN_DIR/shadow"
           uv run python scripts/smoke-project-installed.py "$UV_TOOL_BIN_DIR/shadow"
           uv run python scripts/smoke-installed.py "$UV_TOOL_BIN_DIR/shadow"
         env:

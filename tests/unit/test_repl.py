@@ -9,6 +9,7 @@ import pytest
 
 from packages.core.demo_runtime import DemoRuntime, bundled_workspace, child_environment
 from packages.core.repl import run
+from packages.core.repl_commands import complete, display, terminal_input
 
 PROJECT = Path(__file__).resolve().parents[2]
 
@@ -155,3 +156,140 @@ def test_context_switch_and_invalid_input_preserve_the_correct_session(monkeypat
     assert len(projects) == 1 and projects[0].closed
     assert 'Unclosed quote' in '\n'.join(output)
     assert '\n'.join(output).count('No findings in this investigation.') == 3
+
+
+def test_slash_project_workflow_context_status_and_inspection_do_not_execute_evidence():
+    calls, output, prompts = [], [], []
+    finding = {'title': 'Ownership missing', 'state': 'INCONCLUSIVE', 'endpoint': '/api/items',
+               'severity': 'high', 'category': 'bola', 'validation': 'Static hypothesis',
+               'sources': [{'file': 'app/\033[2Jroute.ts', 'line': 3}],
+               'evidence': [{'token': 'synthetic-hidden-token', 'body': 'sensitive-response'}]}
+    class Project:
+        path = 'Mixed Case'
+        scan_id = 'saved-scan'
+        scan = {'id': 'saved-scan', 'status': 'completed', 'stage': 'completed',
+                'coverage': 'Source-only', 'scanners': {'osv': {'status': 'disabled'}}}
+        findings = [finding]
+        def __init__(self, path, **kwargs):
+            calls.append(('project', path))
+        def analyze(self):
+            calls.append('scan')
+        def history(self):
+            return [{**self.scan, 'created_at': '2026-10-10'}]
+        def use(self, number):
+            calls.append(('use', number))
+            return self.scan
+        def export(self, format):
+            calls.append(('report', format))
+            return 'private/report.json'
+        def close(self):
+            calls.append('closed')
+    commands = iter(['/status', '/PROJECT "Mixed Case"', '/context', '/scan', '/inspect 1',
+                     '/history', '/use 1', '/export json', '/clear', '/fix 1', '/stop', '/status', '/exit'])
+    def read(prompt):
+        prompts.append(prompt)
+        return next(commands)
+    run(input_fn=read, output=output.append, project_factory=Project)
+    text = '\n'.join(output)
+    assert ('project', 'Mixed Case') in calls and ('report', 'json') in calls
+    assert ('use', 1) in calls and calls.count('closed') == 1
+    assert 'shadow[project]> ' in prompts and prompts[-1] == 'shadow> '
+    assert 'Scanner osv: disabled' in text and 'Source-only' in text
+    assert 'Source: app/\\u001b[2Jroute.ts:3' in text and '\033' not in text
+    assert 'synthetic-hidden-token' not in text and 'sensitive-response' not in text
+    assert 'Project patches are disabled' in text
+
+
+@pytest.mark.parametrize('command', ['/demo extra', '/demo browser extra', '/fix 0', '/fix 1 extra',
+                                     '/project', '/project a b', '/scan extra', '/quit extra',
+                                     '/use -1', '/inspect ١', '/inspect 9999999', '/report yaml',
+                                     '/doctor extra', '/init extra'])
+def test_invalid_arguments_never_launch_or_approve_actions(command):
+    output = []
+    def forbidden(**kwargs):
+        pytest.fail('Invalid input launched a runtime')
+    commands = iter([command, '/quit'])
+    run(input_fn=lambda _: next(commands), output=output.append, runtime_factory=forbidden,
+        project_factory=forbidden)
+    assert any(message.startswith('Use /') for message in output)
+
+
+def test_init_topic_help_unknown_commands_and_unselected_inspect_are_action_free():
+    calls, output = [], []
+    class Project:
+        path = '.'
+        def __init__(self, path, **kwargs):
+            calls.append(path)
+        def close(self):
+            calls.append('closed')
+    commands = iter(['/help /fix', '/help unknown', '/scna', '!touch PWNED',
+                     '/inspect 1', '/help', '/init', '/quit'])
+    run(input_fn=lambda _: next(commands), output=output.append, project_factory=Project)
+    text = '\n'.join(output)
+    assert calls == ['.', 'closed']
+    assert 'Did you mean /scan?' in text
+    assert 'Choose a finding number' in text
+    assert 'approves the experiment' in text and 'shell commands are not executed' in text
+    assert all(group in output for group in ('Session', 'Project', 'Evidence', 'Demo'))
+
+
+def test_slash_demo_json_report_and_explicit_patch_request(monkeypatch, tmp_path):
+    monkeypatch.setenv('SHADOWLAB_NO_OPEN', '1')
+    calls, output = [], []
+    finding = {'id': 'finding', 'state': 'CONFIRMED', 'title': 'Auth', 'endpoint': '/api/x',
+               'category': 'authentication'}
+    scan = {'id': 'demo-scan', 'status': 'completed', 'stage': 'completed', 'findings': [finding]}
+    class Runtime:
+        web_url = 'http://127.0.0.1:1234'
+        run_dir = tmp_path
+        def __init__(self, **kwargs):
+            pass
+        def start(self):
+            pass
+        def request(self, method, path, **kwargs):
+            calls.append((method, path, kwargs))
+            if path.startswith('/reports/'):
+                return SimpleNamespace(text=json.dumps({'scan': scan, 'findings': [finding]}))
+            if path.endswith('/propose-fix'):
+                return SimpleNamespace(json=lambda: {'verification': {'passed': True}})
+            return SimpleNamespace(json=lambda: scan)
+        def close(self):
+            calls.append('closed')
+    commands = iter(['/demo', '/status', '/inspect 1', '/export json', '/fix 1 extra', '/fix 1', '/quit'])
+    run(input_fn=lambda _: next(commands), output=output.append, runtime_factory=Runtime)
+    patches = [call for call in calls if isinstance(call, tuple) and call[1].endswith('/propose-fix')]
+    assert len(patches) == 1
+    exported = tmp_path / 'report-demo-scan.json'
+    assert json.loads(exported.read_text())['scan']['status'] == 'completed'
+    assert exported.stat().st_mode & 0o777 == 0o600
+    assert ('GET', '/reports/demo-scan', {'params': {'format': 'json'}}) in calls
+    assert calls[-1] == 'closed'
+    assert 'passed; awaiting review' in '\n'.join(output)
+
+
+def test_completion_is_command_only_and_terminal_controls_are_escaped():
+    assert complete('/sta', 0) == '/status'
+    assert complete('sta', 0) == 'status'
+    assert complete('/sta', 1) is None
+    assert complete('/exp', 0) == '/export'
+    assert complete('/etc/private', 0) is None
+    assert display('file\n\033[2J\u202e.ts') == 'file\\u000a\\u001b[2J\\u202e.ts'
+
+
+def test_line_editor_restores_state_and_does_not_persist_console_history():
+    readline = pytest.importorskip('readline')
+    before = [readline.get_history_item(i) for i in range(1, readline.get_current_history_length() + 1)]
+    completer, delimiters = readline.get_completer(), readline.get_completer_delims()
+    try:
+        readline.add_history('external-history')
+        with pytest.raises(ValueError), terminal_input(True):
+            assert readline.get_current_history_length() == 0
+            readline.add_history('/project "private-path"')
+            raise ValueError('test cleanup')
+        restored = [readline.get_history_item(i) for i in range(1, readline.get_current_history_length() + 1)]
+        assert restored == before + ['external-history']
+        assert readline.get_completer() == completer and readline.get_completer_delims() == delimiters
+    finally:
+        readline.clear_history()
+        for item in before:
+            readline.add_history(item)
