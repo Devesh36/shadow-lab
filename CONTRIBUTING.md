@@ -16,3 +16,13 @@ uv build
 ```
 
 The guided launcher copies only these reviewed files, never dependencies, generated builds, credentials or arbitrary files from the current directory. Verify the resulting wheel includes all inventory entries before changing the distribution. The Homebrew formula is HEAD-only until a separately approved stable release; do not invent release URLs or publish a package as part of ordinary local development.
+
+## Public phase history
+
+For each completed work increment, add a dated product-impact note to `apps/landing/content/phases.json`. Follow [the history instructions](AGENTS.md) for known commit hashes or the current commit's `matchSubject`. The build merges available Git commits automatically; source archives use the reviewed snapshot. Do not publish raw chat messages, credentials or private logs. Use India Standard Time and preserve older records.
+
+```bash
+npm --prefix apps/landing run test:phases
+npm --prefix apps/landing run build
+npm --prefix apps/landing run typecheck
+```

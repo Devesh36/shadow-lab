@@ -1,0 +1,105 @@
+{
+  "timezone": "Asia/Kolkata",
+  "phases": [
+    {
+      "id": "phase1",
+      "title": "Phase 1 \u00b7 Evidence-driven V1",
+      "description": "Source analysis, scoped investigations and real browser proof on the trusted demo."
+    },
+    {
+      "id": "launch",
+      "title": "V1 launch \u00b7 Install & explore",
+      "description": "A guided console, uv/Homebrew installation, a static website and practical documentation."
+    },
+    {
+      "id": "phase2",
+      "title": "Phase 2 \u00b7 Project usability",
+      "description": "Source-only project workflows, private history, honest verdicts and more reliable cleanup."
+    },
+    {
+      "id": "ongoing",
+      "title": "Continuous improvement",
+      "description": "Small, reviewable improvements with a public record of their effect on ShadowLab."
+    }
+  ],
+  "entries": [
+    {
+      "commit": "7544bd640382c4d2383a910685803421eabebd22",
+      "date": "2026-10-09",
+      "phase": "phase1",
+      "title": "V1 baseline preserved",
+      "impact": "Preserved the implemented application: source discovery, scoped investigations, evidence, reports and reviewed demo fixes."
+    },
+    {
+      "commit": "6639dd7e6fe36ee961fc76399e133e59371bbb95",
+      "date": "2026-10-09",
+      "phase": "phase1",
+      "title": "Authorization checked through the browser",
+      "impact": "Added independent anonymous, Alice and Bob sessions, verified active identities, and compared owner and cross-user access against the same resources. Disposable patches repeat the same assertions."
+    },
+    {
+      "commit": "594f577767d0e37b1ba57ffe52d856aa4a2ec3be",
+      "date": "2026-10-09",
+      "phase": "launch",
+      "title": "A guided local demo and simpler installation",
+      "impact": "Added shadow repl, a Demo option, Git-based uv and Homebrew installation, and a Next.js product landing page."
+    },
+    {
+      "commit": "f2d8478623d74663bf3c5b5b0e1b6b1b513d7c96",
+      "date": "2026-10-09",
+      "phase": "launch",
+      "title": "Installation verified from GitHub",
+      "impact": "Recorded the real installed CLI workflow and its validation results, so the documented setup was backed by a working demo."
+    },
+    {
+      "commit": "6d0e729bb85c3e01f96def20b681a652d73c8fb5",
+      "date": "2026-10-09",
+      "phase": "launch",
+      "title": "The website became a separate static app",
+      "impact": "Separated the public landing page from the local investigation application. Vercel can host the product website without publishing the API, database or scanner."
+    },
+    {
+      "commit": "27f54078973c84f4bffb845e65501d6832ce9a9b",
+      "date": "2026-10-10",
+      "phase": "launch",
+      "title": "Vercel packaging corrected",
+      "impact": "Removed the incompatible output-directory override that caused the missing routes-manifest error. Verified the static app with the real Vercel Next.js builder."
+    },
+    {
+      "commit": "2392b1900ef2b48d33fc547f83a6b23ca77eee24",
+      "date": "2026-10-10",
+      "phase": "launch",
+      "title": "Installation links moved to main",
+      "impact": "Updated installers, website links and release checks to use main after the feature branch was removed."
+    },
+    {
+      "commit": "dfc98ce3ffef9f63252d365a3aff4213ee74c40e",
+      "date": "2026-10-10",
+      "phase": "launch",
+      "title": "A practical documentation page",
+      "impact": "Added installation, demo and project instructions, plus nine sanitized screenshots and transcripts captured from real terminal sessions."
+    },
+    {
+      "commit": "4b12f067186213be4d4442d05f189fbb1757ebe4",
+      "date": "2026-10-10",
+      "phase": "launch",
+      "title": "A clearer landing page with accessible motion",
+      "impact": "Redesigned the public homepage, made Docs prominent, and added interactive previews and varied animation with pause controls, reduced-motion support and mobile checks."
+    },
+    {
+      "commit": "366ff0a347e44f13f3ed0de570d95097b94ee492",
+      "date": "2026-10-10",
+      "phase": "phase2",
+      "title": "Your own project, inside the console",
+      "impact": "Added project selection, source-only scans, routes, findings, private history and reports. Improved diagnostics, cancellation and honest failure coverage; expanded installed-package and browser CI checks."
+    },
+    {
+      "commit": null,
+      "matchSubject": "Add dated development phases to landing page",
+      "date": "2026-10-10",
+      "phase": "ongoing",
+      "title": "A public record of every improvement",
+      "impact": "Added Phases to the navigation and a dated development timeline with commit links and product-impact notes. Builds collect available Git history, and repository guidance keeps future work summaries current."
+    }
+  ]
+}

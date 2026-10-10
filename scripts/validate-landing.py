@@ -91,11 +91,35 @@ async def main():
             for width in [320, 390, 768, 1024, 1440, 1920]:
                 await page.set_viewport_size({'width': width, 'height': 900})
                 assert await page.locator('body').evaluate('element => element.scrollWidth <= innerWidth'), width
-                for name in ['Docs', 'Get ShadowLab']:
+                for name in ['Docs', 'Phases', 'Get ShadowLab']:
                     link = navigation.get_by_role('link', name=name, exact=True)
                     await expect(link).to_be_visible()
                     box = await link.bounding_box()
                     assert box['x'] >= 0 and box['x'] + box['width'] <= width, (width, name, box)
+            await navigation.get_by_role('link', name='Phases', exact=True).click()
+            await page.wait_for_url('**/#phases')
+            await expect(page.get_by_role('heading', name='Phases', exact=True)).to_be_visible()
+            history = json.loads(Path('apps/landing/.generated/phases.json').read_text())
+            assert len(history['entries']) >= 11
+            archive = page.locator('.m-phase-archive')
+            await archive.locator('summary').focus()
+            await archive.locator('summary').press('Enter')
+            await expect(archive).to_have_attribute('open', '')
+            assert await page.locator('.m-phase-update').count() == len(history['entries'])
+            for entry in history['entries']:
+                row = page.locator('[data-commit="' + (entry['commit'] or 'current-update') + '"]')
+                await expect(row).to_contain_text(entry['title'])
+                await expect(row.locator('time')).to_have_attribute('datetime', entry['date'])
+                if entry['commit']:
+                    await expect(row.locator('a')).to_have_attribute('href',
+                        'https://github.com/Devesh36/shadow-lab/commit/' + entry['commit'])
+            await page.set_viewport_size({'width': 390, 'height': 844})
+            await page.locator('#phases').evaluate('element => window.scrollTo(0, element.getBoundingClientRect().top + scrollY - 140)')
+            await page.screenshot(path=str(ROOT / 'phases-mobile.png'))
+            await page.set_viewport_size({'width': 1440, 'height': 1000})
+            await page.locator('#phases').evaluate('element => window.scrollTo(0, element.getBoundingClientRect().top + scrollY - 110)')
+            await page.screenshot(path=str(ROOT / 'phases-desktop.png'))
+            checks.append({'check': 'Phases navigation, all recorded commits, IST dates, impact notes, valid commit links and keyboard history disclosure', 'passed': True})
             await page.set_viewport_size({'width': 1440, 'height': 1000})
             await page.evaluate('window.scrollTo(0, 0)')
             await page.screenshot(path=str(ROOT / 'redesign-hero-desktop.png'))
@@ -169,11 +193,16 @@ async def main():
             await static_page.goto(BASE)
             await expect(static_page.get_by_role('heading', name='Find the bug.')).to_be_visible()
             await expect(static_page.locator('#how-it-works')).to_be_visible()
+            await static_page.get_by_role('navigation', name='Main navigation', exact=True).get_by_role('link', name='Phases', exact=True).click()
+            await static_page.wait_for_url('**/#phases')
+            await expect(static_page.get_by_role('heading', name='Phases', exact=True)).to_be_visible()
+            await static_page.locator('.m-phase-archive summary').click()
+            await expect(static_page.locator('.m-phase-update').last).to_contain_text('V1 baseline preserved')
             await static_page.get_by_role('navigation', name='Main navigation', exact=True).get_by_role('link', name='Docs', exact=True).click()
             await static_page.wait_for_url('**/docs/')
             await expect(static_page.get_by_role('heading', name='Use it in your project', exact=True)).to_be_visible()
             await no_js.close()
-            checks.append({'check': 'server-exported homepage content and Docs navigation with JavaScript disabled', 'passed': True})
+            checks.append({'check': 'server-exported homepage, phase history/disclosure and Docs navigation with JavaScript disabled', 'passed': True})
         finally:
             await browser.close()
     (ROOT / 'static-checks.json').write_text(json.dumps({'checks':checks,'limitations':['Local static preview; Vercel header delivery and cloud deployment not verified']}, indent=2)+'\n')

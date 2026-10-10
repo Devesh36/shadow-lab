@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack --hostname 127.0.0.1",
-    "build": "next build --webpack",
-    "typecheck": "tsc --noEmit"
+    "dev": "node scripts/generate-phases.mjs && next dev --webpack --hostname 127.0.0.1",
+    "build": "node scripts/generate-phases.mjs && next build --webpack",
+    "typecheck": "node scripts/generate-phases.mjs && tsc --noEmit",
+    "test:phases": "node --test scripts/generate-phases.test.mjs"
   },
   "dependencies": {
     "next": "16.4.0",

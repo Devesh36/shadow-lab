@@ -597,3 +597,35 @@ The first non-e2e run had **77 passed, one failed, nine deselected**: PostgreSQL
 The optional `test_postgres_persistence_if_configured` still skips when `SHADOWLAB_TEST_POSTGRES_URL` is absent. Its prerequisite/skip logic is unchanged; it ran and passed in the final database-enabled suite. A missing database must not be represented as a passed persistence check.
 
 Limitations: project mode is heuristic Next.js source analysis, with no runtime verdict or dependency advisories. Missing/failed scanners do not prove a clean project. Native macOS Homebrew and Windows/WSL were not exercised. CI configuration was updated, but a hosted CI run is not claimed by local checks. Vercel adapter packaging/browser checks are local, not a hosted deployment or delivered-header guarantee. This increment does not rebuild the complete Docker application stack; relevant Docker checks cover the reviewed Compose configuration and disposable PostgreSQL persistence. Arbitrary untrusted repository execution remains disabled pending verified VM-grade or equivalent hardened isolation; Docker Compose alone is not that boundary. No merge, release publication, credential change, wider scan or security/network-policy expansion was performed.
+
+## Public Phases timeline — 10 October 2026 (IST)
+
+The public landing navigation and footer now link to `#phases`. The section summarizes the V1 investigation foundation, installation/website delivery, Phase 2 project usability and continuous improvement. A newest-first timeline includes the ten pre-existing main commits plus this work increment, with recorded dates in **Asia/Kolkata / India Standard Time**, product-impact notes and validated GitHub commit links. The first entry is explicitly a preserved baseline, not an invented original build date. Earlier updates use a native keyboard-accessible disclosure, including without JavaScript.
+
+`apps/landing/content/phases.json` stores reviewed impact notes and a historical snapshot. The build/dev/typecheck scripts generate ignored `.generated/phases.json` from up to 1,000 available Git commits; unannotated commits still appear using their subjects. A current annotation matches its intended commit subject and IST date, so it resolves to its own commit after committing without storing a self-referential hash. A Git-free archive retains the reviewed snapshot. If Vercel supplies a valid commit SHA and matching subject, the current note uses that link and its reviewed work date; otherwise the link is honestly marked unavailable. No commit timestamp is invented. Git collection uses fixed argument arrays, a five-second timeout and a 2 MiB output cap; there are no browser-time GitHub calls, backend functions or automatic write-back commits. The full GitHub commit archive remains linked.
+
+New `AGENTS.md` instructions and `CONTRIBUTING.md` require public impact notes for future completed work chats/changes, preserving dates and older entries. These are summaries of product changes, not raw chat transcripts, credentials or private logs. CI checks out full history and runs the history regressions. A build can only collect the Git metadata available in its checkout; source archives/shallow provider copies cannot infer omitted future commits, so the reviewed catalog must continue to be maintained. The page does not have access to conversations in other chats.
+
+Prerequisites: existing Node 24.19.0/npm 11.9.0 and locked landing dependencies, Python/Playwright with compatible Chromium `/usr/bin/chromium`, the existing static loopback preview on port 3100, and local Vercel CLI 63.1.0 / `@vercel/next` 22.0.0. Node/Next/browser commands used individually approved local command escalations where the managed syscall sandbox prevented reliable child-process or loopback operation. No environment configuration or network-policy change was required.
+
+```bash
+npm --prefix apps/landing run test:phases
+NEXT_TELEMETRY_DISABLED=1 npm --prefix apps/landing run build
+npm --prefix apps/landing run typecheck
+SHADOWLAB_CHROMIUM_PATH=/usr/bin/chromium .venv/bin/python scripts/validate-landing.py
+node scripts/check-landing-vercel.cjs /workspace/.cache/shadowlab-vercel-cli/node_modules/@vercel/next
+.venv/bin/ruff check packages apps/api tests scripts
+git diff --check
+```
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| History generation tests | **9 passed, 0 failed/skipped**: IST day boundary, safe commit identifiers, new unannotated commits, shallow/snapshot merge, current annotation resolution, same-day ordering, invalid/duplicate annotations, Git-free generation and valid/invalid injected provider metadata | `.shadowlab/phase-history/history-tests.log` |
+| Landing production build / TypeScript | Passed; `/` and `/docs` remain static | `.shadowlab/phase-history/build.log`, `typecheck.log` |
+| Real Chromium public-site regression | **11 passed**, 0 final failures; all timeline entries/dates/links, keyboard disclosure, Phases/Docs/Install visible at 320/390/768/1024/1440/1920 px, existing motion/clipboard/docs checks, JavaScript-disabled history/navigation and no external/API requests | `.shadowlab/phase-history/browser.log`; `.shadowlab/vercel-validation/static-checks.json` |
+| Desktop/mobile visual inspection | Passed; phase summaries and navigation inspected | `.shadowlab/vercel-validation/phases-desktop.png`, `phases-mobile.png` |
+| Actual local Vercel adapter | Passed; Git-free snapshot retained, landing/docs HTML and nine terminal recording pairs exported, zero runtime functions; former output override still rejected as expected | `.shadowlab/phase-history/packaging.log`; `.shadowlab/vercel-manifest-fix/packaging-check.json` |
+| Python lint / whitespace | Passed | Commands above |
+| Investigation/API/PostgreSQL suite | Not repeated for this static website/history increment; the preceding application increment passed 91 tests with zero skips | Phase 2 evidence above |
+
+The existing PostgreSQL test's conditional skip remains unchanged: without `SHADOWLAB_TEST_POSTGRES_URL`, persistence is not verified. No Docker application rebuild or new database check is claimed for this static change. Tests exercised Chromium and local provider packaging, not every browser engine, a hosted CI run, a Vercel deployment or delivered cloud headers. The application, execution policy, target allowlists and explicit demo patch approval remain intact; arbitrary repository execution remains disabled.

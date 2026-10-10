@@ -5,9 +5,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
       - uses: actions/setup-node@v4
         with: {node-version: '22'}
       - run: npm --prefix apps/landing ci
+      - run: npm --prefix apps/landing run test:phases
       - run: npm install --prefix "$RUNNER_TEMP/shadowlab-vercel" --no-audit --no-fund vercel@63.1.0
       - run: node scripts/check-landing-vercel.cjs "$RUNNER_TEMP/shadowlab-vercel/node_modules/@vercel/next"
         env: {NEXT_TELEMETRY_DISABLED: '1'}
@@ -21,6 +23,7 @@ jobs:
         options: --health-cmd "pg_isready -U shadowlab" --health-interval 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
       - uses: astral-sh/setup-uv@v6
       - uses: actions/setup-node@v4
         with: {node-version: '22'}

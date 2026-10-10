@@ -17,7 +17,7 @@ async function main() {
   await fs.mkdir(evidence, { recursive: true });
   const workPath = await fs.mkdtemp(path.join(evidence, 'packaging-'));
   try {
-    for (const name of ['app', 'public', 'package.json', 'package-lock.json', 'next.config.ts', 'tsconfig.json', 'vercel.json']) {
+    for (const name of ['app', 'public', 'scripts', 'content', 'package.json', 'package-lock.json', 'next.config.ts', 'tsconfig.json', 'vercel.json']) {
       await fs.cp(path.join(source, name), path.join(workPath, name), { recursive: true });
     }
     await fs.symlink(path.join(source, 'node_modules'), path.join(workPath, 'node_modules'), 'dir');
@@ -35,6 +35,8 @@ async function main() {
     const manifest = JSON.parse(await fs.readFile(path.join(output, 'config.json'), 'utf8'));
     assert.equal(manifest.version, 3);
     assert.ok((await fs.stat(path.join(output, 'static/index.html'))).isFile());
+    const homepage = await fs.readFile(path.join(output, 'static/index.html'), 'utf8');
+    assert.ok(homepage.includes('id="phases"') && homepage.includes('V1 baseline preserved'), 'Phase history must survive builds without repository metadata');
     const recordings = JSON.parse(await fs.readFile(path.join(source, 'public/docs/terminal/manifest.json'), 'utf8'));
     const staticFiles = await fs.readdir(path.join(output, 'static'), { recursive: true });
     assert.ok(staticFiles.includes('docs/index.html'), 'The standalone documentation must export an HTML page');

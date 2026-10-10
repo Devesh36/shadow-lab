@@ -26,6 +26,7 @@ import {
   X,
 } from 'lucide-react';
 import './marketing.css';
+import Phases from './phases';
 
 const installs = {
   uv: 'uv tool install --python 3.12 "git+https://github.com/Devesh36/shadow-lab.git@main"\nshadow repl',
@@ -120,6 +121,7 @@ export default function Landing() {
             <a className="m-nav-simple" href="#how-it-works">
               How it works
             </a>
+            <a className="m-nav-phases" href="#phases">Phases</a>
             <Link className="m-nav-docs" href="/docs/">
               <BookOpen size={15} /> Docs <ArrowRight size={13} />
             </Link>
@@ -583,6 +585,8 @@ export default function Landing() {
           </span>
         </section>
 
+        <Phases />
+
         <section
           id="install"
           className="m-install m-container"
@@ -710,6 +714,7 @@ export default function Landing() {
           <p>Good security work leaves evidence.</p>
         </div>
         <nav aria-label="Footer navigation">
+          <a href="#phases">Phases</a>
           <Link href="/docs/">Documentation</Link>
           <a href="https://github.com/Devesh36/shadow-lab">
             GitHub <ArrowRight size={13} />
