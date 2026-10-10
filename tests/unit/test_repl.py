@@ -214,7 +214,8 @@ def test_invalid_arguments_never_launch_or_approve_actions(command):
     assert any(message.startswith('Use /') for message in output)
 
 
-def test_init_topic_help_unknown_commands_and_unselected_inspect_are_action_free():
+def test_init_topic_help_unknown_commands_and_unselected_inspect_are_action_free(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
     calls, output = [], []
     class Project:
         path = '.'
@@ -226,11 +227,33 @@ def test_init_topic_help_unknown_commands_and_unselected_inspect_are_action_free
                      '/inspect 1', '/help', '/init', '/quit'])
     run(input_fn=lambda _: next(commands), output=output.append, project_factory=Project)
     text = '\n'.join(output)
-    assert calls == ['.', 'closed']
+    assert calls == [str(tmp_path), 'closed']
     assert 'Did you mean /scan?' in text
     assert 'Choose a finding number' in text
     assert 'approves the experiment' in text and 'shell commands are not executed' in text
     assert all(group in output for group in ('Session', 'Project', 'Evidence', 'Demo'))
+
+
+@pytest.mark.parametrize('outside', [False, True])
+def test_init_selects_launch_directory_and_preserves_root_allowlist(monkeypatch, tmp_path, outside):
+    allowed = tmp_path / 'allowed'
+    launch = (tmp_path if outside else allowed) / 'Launch Project'
+    allowed.mkdir()
+    launch.mkdir()
+    monkeypatch.chdir(launch)
+    monkeypatch.setenv('SHADOWLAB_REPOSITORY_ROOT', str(allowed))
+    monkeypatch.setenv('SHADOWLAB_HOME', str(tmp_path / 'private'))
+    output = []
+    commands = iter(['/init', '/status', '/quit'])
+    run(input_fn=lambda _: next(commands), output=output.append)
+    text = '\n'.join(output)
+    if outside:
+        assert 'Project command incomplete' in text and 'Context: none' in text
+        assert not (tmp_path / 'private').exists()
+    else:
+        assert 'Project selected: ' + str(launch) in text
+        assert 'Context: project · ' + str(launch) in text
+        assert 'No selected scan' in text
 
 
 def test_slash_demo_json_report_and_explicit_patch_request(monkeypatch, tmp_path):

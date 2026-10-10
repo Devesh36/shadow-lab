@@ -47,8 +47,6 @@ def console(input_fn, output, runtime_factory, project_factory):
             if not validate(command, words[1:]):
                 output('Use /' + COMMANDS[command].usage + '. Type /help ' + command + ' for details.')
                 continue
-            if command == 'init':
-                command, words = 'project', ['project', '.']
             if command == 'quit':
                 break
             if command == 'help':
@@ -81,8 +79,8 @@ def console(input_fn, output, runtime_factory, project_factory):
                         output('Choose a finding number from /findings. Run /scan or /demo first if none are saved.')
                     else:
                         show_detail(selected[number - 1], number, output)
-                elif command == 'project':
-                    selected = project_factory(words[1], output=output)
+                elif command in ('project', 'init'):
+                    selected = project_factory(os.getcwd() if command == 'init' else words[1], output=output)
                     if runtime:
                         runtime.close()
                         runtime = None
@@ -182,7 +180,7 @@ def console(input_fn, output, runtime_factory, project_factory):
                 scan, findings = None, []
                 output("Cancelled. Local demo services stopped; type demo to start again.")
             except Exception as exc:
-                if project or command == 'project':
+                if project or command in ('project', 'init'):
                     output(f"Project command incomplete ({type(exc).__name__}): {display(exc)}" if isinstance(exc, (ValueError, TimeoutError))
                            else f"Project command incomplete ({type(exc).__name__}); inspect private logs. Coverage is incomplete.")
                     continue

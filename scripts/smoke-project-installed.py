@@ -43,7 +43,14 @@ def main():
         assert reports[0].stat().st_mode & 0o777 == 0o600
         assert hashlib.sha256(route.read_bytes()).hexdigest() == before
         assert not (project / 'SHOULD_NOT_RUN').exists() and not (root / '.shadowlab').exists()
+        initialized = subprocess.run([executable, 'repl'], cwd=project,
+                                     env={**env, 'SHADOWLAB_REPOSITORY_ROOT': str(root)},
+                                     input='/init\n/status\n/quit\n', text=True, capture_output=True, timeout=30)
+        assert initialized.returncode == 0
+        assert 'Project selected: ' + str(project) in initialized.stdout
+        assert 'Context: project · ' + str(project) in initialized.stdout
         print(json.dumps({'installed_project_repl': 'passed', 'history_reopen': 'passed',
+                          'init_with_broader_allowed_root': 'passed',
                           'source_unchanged': True, 'operator_state_isolated': True,
                           'scanner': payload['scan']['scanners']['semgrep']['status'],
                           'findings': len(payload['findings']), 'verdict': 'INCONCLUSIVE'}))

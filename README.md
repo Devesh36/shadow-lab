@@ -37,7 +37,7 @@ For uv installs, first install **Node.js 22+, npm and Git**. Python 3.12+ is req
 | `findings` | Show the latest investigation's actual verdicts |
 | `fix NUMBER` | Explicitly approve a disposable patch experiment for a supported finding; review remains required |
 | `report` / `report json` | Export private Markdown or JSON in either mode |
-| `/init` | Select the directory where you launched the console, equivalent to `project .` |
+| `/init` | Select the directory where you launched the console, within the allowed repository root |
 | `/status` / `/context` | Show the active project/demo, selected scan, verdict count and scanner coverage |
 | `/inspect NUMBER` | Inspect a finding's verdict, source references and validation summary |
 | `/clear` | Clear an interactive terminal display without discarding results |

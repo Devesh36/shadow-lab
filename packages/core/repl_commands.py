@@ -21,7 +21,7 @@ COMMANDS = {
     'stop': Command('stop', 'Close the context and its services; retain saved results.', 'Session'),
     'quit': Command('quit', 'Exit and clean up owned processes.', 'Session'),
     'project': Command('project PATH', 'Select a source-only project; quote paths with spaces.', 'Project', 'path'),
-    'init': Command('init', 'Select the launch directory for source-only analysis (project .).', 'Project'),
+    'init': Command('init', 'Select the launch directory for source-only analysis, within the allowed root.', 'Project'),
     'scan': Command('scan', 'Run source analysis on the selected project. Ctrl+C cancels.', 'Project'),
     'routes': Command('routes', 'List the selected project scan\'s routes.', 'Project'),
     'history': Command('history', 'List the ten latest saved project scans, newest first.', 'Project'),

@@ -101,12 +101,19 @@
       "impact": "Added Phases to the navigation and a dated development timeline with commit links and product-impact notes. Builds collect available Git history, and repository guidance keeps future work summaries current."
     },
     {
-      "commit": null,
-      "matchSubject": "Improve REPL with discoverable slash commands",
+      "commit": "d7c6b554003fc357b5df055761d8272e10c15c0e",
       "date": "2026-10-10",
       "phase": "phase2",
       "title": "A more useful command-driven console",
       "impact": "Added slash commands, context-aware prompts, grouped help, session status, finding inspection, terminal completion and JSON demo exports. Strict argument checks preserve explicit patch approval and existing cancellation safeguards."
+    },
+    {
+      "commit": null,
+      "matchSubject": "Keep REPL initialization scoped to the launch directory",
+      "date": "2026-10-10",
+      "phase": "phase2",
+      "title": "Project initialization stays scoped",
+      "impact": "Ensured /init selects the launch directory even with a broader configured repository root. Added allowed/denied directory regressions and an installed CLI check; the repository allowlist remains enforced."
     }
   ]
 }

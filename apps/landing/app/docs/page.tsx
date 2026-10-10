@@ -336,7 +336,7 @@ export default function Docs() {
                 </thead>
                 <tbody>
                   {[
-                    ['/init', 'Select the directory where you launched the console (project .).'],
+                    ['/init', 'Select the launch directory, within the allowed repository root.'],
                     ['/status / /context', 'Show the active context, selected scan and scanner coverage.'],
                     ['/inspect NUMBER', 'Show a finding\'s source references, verdict and validation summary.'],
                     ['/clear', 'Clear an interactive display while keeping the session and results.'],
