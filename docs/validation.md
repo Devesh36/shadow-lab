@@ -268,7 +268,7 @@ Temporary web and PostgreSQL validation containers were removed after their chec
 
 ## Landing-only Vercel increment — 2026-10-09
 
-The user narrowed hosting to **the landing page only**. The final deployment is the self-contained `apps/landing` Next.js static export. Vercel Root Directory is **`apps/landing`**, build command **`npm run build`**, output **`out`**. No application environment variables, backend service, bindings, database, dashboard or scanner are part of this deployment. Demo links go to local installation instructions. Existing `apps/web`, `apps/api`, packages, trusted demo and local launchers have no source diff in this increment.
+The user narrowed hosting to **the landing page only**. The deployment is the self-contained `apps/landing` Next.js static export. Vercel Root Directory is **`apps/landing`**, build command **`npm run build`**. **Correction on 2026-10-10: leave the Vercel Output Directory override disabled**; the original `out` override below caused a provider packaging failure despite the local static build passing. `out` remains the export directory for local/manual static hosting. No application environment variables, backend service, bindings, database, dashboard or scanner are part of this deployment. Demo links go to local installation instructions. Existing `apps/web`, `apps/api`, packages, trusted demo and local launchers have no source diff in this increment.
 
 The proposed multi-service adapter/configuration and its tests were removed from the active patch after the scope correction. All of that provisional work was first archived and byte-verified under ignored `.shadowlab/vercel-proposal-backup/`, including the exact reversible tracked patch and 19 source/config files. Automatic approval review initially rejected an unbacked cleanup because it might discard uncommitted work; inspection and a verified archive resolved that concern, and the reversible cleanup succeeded. The checkout/branch was never reset or replaced. Its generated Python service environment was moved into the same private archive. Do not distribute that entire directory.
 
@@ -336,3 +336,47 @@ The browser helper asserts only this fixed loopback origin, rejects other page r
 - The managed network denied reads of `https://vercel.com/docs/services` and `https://openapi.vercel.sh/vercel.json` with HTTP **403** during the provisional services investigation. CLI update checks also reported failure to fetch npm dist-tags. No network/security permissions were broadened. An authenticated provider deployment/build, hosted header delivery and remote CI were **not run**.
 
 The native product remains available on loopback port 3000 and the static site preview on loopback port 3100. No API/data service, database provisioning, deployment credential change, merge, release, registry publication or arbitrary repository execution is included in this increment. The temporary PostgreSQL validation container is removed after the suite; existing native services and saved validation evidence remain.
+
+## Vercel missing-manifest correction — 2026-10-10
+
+The actual deployment compiled, passed TypeScript and generated its static pages, then failed with:
+
+```text
+The file "/vercel/path0/apps/landing/out/routes-manifest.json" couldn't be found.
+```
+
+The original `outputDirectory: "out"` setting and associated deployment instructions were incorrect for Vercel's **Next.js framework builder**. `out` is the standalone static export, while Next.js build metadata lives under `.next`. The original local export/browser checks did not exercise provider packaging, so they missed this defect. The fix removes the override, updates README/setup instructions, and keeps `output: 'export'`. An existing project's saved Output Directory override must also be disabled in **Vercel Project Settings → Build and Deployment** before redeploying. Root Directory remains `apps/landing`; no backend, bindings or application secrets are added.
+
+### Provider reproduction and verification
+
+The installed Vercel CLI **63.1.0** includes `@vercel/next` **22.0.0**. Its actual builder was called directly with the Vercel Next.js adapter enabled, in disposable copies containing only the reviewed landing sources and installed dependencies. Installation was skipped because locked packages were already installed. This requires no Vercel account, project linking, deployment or network-permission changes.
+
+The original configuration was first compiled through this builder and reproduced **`NEXT_NO_ROUTES_MANIFEST`**, referencing `out/routes-manifest.json`, after successful compilation/static generation. The corrected configuration then passed the same builder and produced **Build Output v3 at `.next/output`**, with `static/index.html` and **zero runtime functions**. The check also applied the old `out` override to the successful build and required the exact same missing-manifest error. Generated scratch copies are removed after the regression helper finishes; only sanitized logs and metadata are retained.
+
+```bash
+npm_config_cache=/workspace/.cache/npm NODE_USE_ENV_PROXY=1 \
+  node scripts/check-landing-vercel.cjs \
+  /workspace/.cache/shadowlab-vercel-cli/node_modules/@vercel/next
+NEXT_TELEMETRY_DISABLED=1 npm --prefix apps/landing run build
+npm --prefix apps/landing run typecheck
+# With the existing loopback static preview on port 3100:
+SHADOWLAB_CHROMIUM_PATH=/usr/bin/chromium .venv/bin/python scripts/validate-landing.py
+.venv/bin/ruff check packages apps/api tests scripts
+git diff --check
+```
+
+A new `landing-packaging` CI job installs the pinned CLI into the runner's temporary directory and runs this exact builder regression with Node.js 22. It does not deploy anything. Other CI jobs and the local investigation engine remain unchanged. Remote CI execution is not asserted by adding the job.
+
+| Check | Result | Sanitized evidence |
+| --- | --- | --- |
+| Original override, real provider builder | Reproduced reported failure after successful compile | `.shadowlab/vercel-manifest-fix/broken.log`, `reproduced.json` |
+| Corrected config, real provider builder | Passed; v3 static output, zero runtime functions | `.shadowlab/vercel-manifest-fix/fixed-builder.log`, `packaging-check.json` |
+| Former override against successful build | Expected missing-manifest failure asserted by regression | `fixed-builder.log` |
+| Plain static production build | Passed | `.shadowlab/vercel-manifest-fix/landing-build.log` |
+| Landing TypeScript | Passed | `.shadowlab/vercel-manifest-fix/typecheck.log` |
+| Real Chromium static site / configured production CSP | Passed six request/browser checks; tabs, clipboard, local-install CTA and mobile layout; application routes remain 404 | `.shadowlab/vercel-manifest-fix/browser.log`; `.shadowlab/vercel-validation/static-checks.json`, `static-desktop.png`, `static-mobile.png` |
+| Python lint / diff whitespace | Passed | Commands above |
+| Full investigation suite | Not repeated for this config/docs/CI-only fix; preceding increment passed 72 with zero skips | Prior `preserved-suite.log` above |
+| Cloud project settings / redeployment | Not inspected or performed; account access is unavailable | User must clear any saved override and redeploy |
+
+The provider builder check now covers the packaging stage that plain `next build` missed. It is still a local invocation of provider code, not proof of successful cloud redeployment, current project settings or delivered hosted headers. No credentials, permissions, scanner policy, database, local API or dashboard source changed.
