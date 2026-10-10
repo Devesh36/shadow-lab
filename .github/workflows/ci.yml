@@ -30,12 +30,20 @@ jobs:
       - run: npm --prefix apps/web ci && npm --prefix examples/vulnerable-nextjs ci
       - run: npm --prefix apps/landing ci && npm --prefix apps/landing run build && npm --prefix apps/landing run typecheck
         env: {NEXT_TELEMETRY_DISABLED: '1'}
+      - name: Landing browser regression
+        run: |
+          python3 -m http.server 3100 --bind 127.0.0.1 --directory apps/landing/out > "$RUNNER_TEMP/landing.log" 2>&1 &
+          landing_pid=$!
+          trap 'kill -TERM "$landing_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:3100/docs/ >/dev/null && break || sleep 1; done
+          uv run python scripts/validate-landing.py
       - run: npm --prefix apps/web run build -- --webpack && npm --prefix examples/vulnerable-nextjs run build -- --webpack
         env: {NEXT_TELEMETRY_DISABLED: '1'}
       - run: |
           uv build --wheel
           uv run python scripts/check-bundle.py dist/shadowlab-0.1.0-py3-none-any.whl
           uv tool install --python 3.12 dist/shadowlab-0.1.0-py3-none-any.whl
+          uv run python scripts/smoke-project-installed.py "$UV_TOOL_BIN_DIR/shadow"
           uv run python scripts/smoke-installed.py "$UV_TOOL_BIN_DIR/shadow"
         env:
           UV_TOOL_DIR: ${{ runner.temp }}/shadow-tools

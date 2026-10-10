@@ -31,9 +31,12 @@ For uv installs, first install **Node.js 22+, npm and Git**. Python 3.12+ is req
 | --- | --- |
 | `demo` / `1` | Authorize bounded tests of the bundled synthetic local app and open its investigation |
 | `demo browser` | Repeat with isolated anonymous/Alice/Bob browser sessions; Chromium is required |
+| `project PATH` | Select a project for isolated source-only analysis; quote paths with spaces |
+| `scan` / `routes` | Analyze the selected project / inspect discovered routes |
+| `history` / `use NUMBER` | List the ten latest project scans / select one for findings and export |
 | `findings` | Show the latest investigation's actual verdicts |
 | `fix NUMBER` | Explicitly approve a disposable patch experiment for a supported finding; review remains required |
-| `report` | Export the current sanitized Markdown report |
+| `report` / `report json` | Export Markdown; JSON is available in project mode |
 | `doctor` / `2` | Check local launcher prerequisites |
 | `stop` | Stop local services, retaining saved evidence |
 | `help` / `quit` | Show commands / close the console and stop its services |
@@ -49,6 +52,32 @@ export SHADOWLAB_CHROMIUM_PATH=/absolute/path/to/chromium
 ```
 
 Linux needs Chromium's system libraries; see Playwright's installation guidance. Missing/unsupported setup is shown as incomplete browser coverage. The default `demo` needs no browser installation or LLM key. For CLI updates, rerun the uv install with `--reinstall`, or use `brew upgrade --fetch-HEAD devesh36/shadowlab/shadowlab`.
+
+## Analyze your own project in the console
+
+```bash
+cd /path/to/your-nextjs-project
+shadow repl
+```
+
+At `shadow>`:
+
+```text
+project .
+scan
+routes
+findings
+history
+report
+report json
+quit
+```
+
+Project sessions read source and run the installed local Semgrep rules. They never run project scripts, install dependencies, start your app, make target requests, call an LLM or apply patches. Findings remain `INCONCLUSIVE`; scanner failures and disabled dependency coverage are shown explicitly. This is Next.js heuristic analysis, not a complete security assessment.
+
+The selected directory must be inside `SHADOWLAB_REPOSITORY_ROOT`, which defaults to the directory where you launched the console. From a parent directory, `project "Mixed Case Project"` preserves spaces and case. Project history and exports live in private `SHADOWLAB_HOME/projects/<path-hash>/` storage, separate from demo runs and the operator database. Reopening the same path restores its latest scan; `history` numbers are newest first and `use 2` selects the preceding scan. Exported source paths and findings should be reviewed before sharing.
+
+Only one scan per project can run at a time. Ctrl+C stops the analysis worker and its scanner processes, records incomplete coverage, and lets you retry with `scan`. Failed scans stay visible in history and never inherit the previous scan's verdict. `stop` deselects the project but retains its history. `demo` switches back to the shipped synthetic app; `fix NUMBER` is available only there. The standalone CLI remains supported.
 
 ## Start from a checkout
 
@@ -165,3 +194,5 @@ The analyzer uses Tree-sitter for parsing and source positions, with framework-s
 Future work: VM-backed arbitrary-repository execution, generalized patch generation, generalized browser identity adapters, deeper source/data-flow adapters, stronger multi-user auth/RBAC, provider integration tests, and CI pull-request delivery. Checkpoints are persisted for inspection; interrupted scans do not automatically replay actions after restart. The API supports one worker and at most two concurrent scans.
 
 See [architecture](docs/architecture.md), [threat model](docs/threat-model.md), [security policy](SECURITY.md), [troubleshooting](docs/troubleshooting.md), and [contributing](CONTRIBUTING.md). MIT licensed.
+
+Product milestones and the recurring regression loop are tracked in [the improvement roadmap](docs/roadmap.md).

@@ -508,3 +508,92 @@ git diff --check
 Desktop and mobile screenshots were visually inspected. The first browser run exposed decorative step numbers in the accessible tab names; they are now hidden from assistive technology so the names match Source/Validate/Review. The next run caught the installation link extending about three pixels beyond a 320px viewport, despite the page's clipping preventing horizontal scrolling. Narrow-screen navigation spacing was corrected, and the final regression checks actual link bounds as well as overflow. Intermediate failures are retained in `browser-first.log` and `browser-second.log`; final rebuilt checks passed.
 
 This is a static website change. The earlier 72-test investigation suite, Docker/PostgreSQL checks and terminal-demo captures were not repeated; their preceding results and optional PostgreSQL prerequisite/skip logic are unchanged. Chromium was tested, not all browser engines. Local provider packaging does not prove cloud deployment or delivered Vercel headers. Deploy the latest `main` with Root Directory **`apps/landing`**; the local product's separate `apps/web` landing is intentionally preserved. No Vercel deployment, credential change, execution-policy relaxation, network-permission change, new service binding or arbitrary repository execution was performed.
+
+## Phase 2: project usability and reliability — 2026-10-10
+
+The REPL now selects a project with `project PATH` and supports `scan`, `routes`, `findings`, `history`, `use NUMBER`, and `report [json]`. Quoted paths preserve case and spaces. Canonical project paths get independent private SQLite/history/report directories under `SHADOWLAB_HOME/projects/`; neither the operator database/settings nor the source project is used as session storage. Reopening a project selects its latest saved scan. History displays the ten latest scans, newest first.
+
+Project scans use fixed installed analysis tools in an isolated Python import mode (`-I`) from the trusted package directory. They never build, install, execute or patch project code, start its app, make dynamic target requests, call an LLM, or run network advisory checks. Local Semgrep uses the shipped rules; OSV is explicitly disabled in this console mode. Static findings remain INCONCLUSIVE. Directory/symlink escapes are denied. Each project scan holds a nonblocking process lock, including in its worker; cancellation, timeout and failure terminate its process group before recording incomplete coverage. A new failed scan never displays the previous successful scan's findings or report. Reopened abandoned records are marked incomplete, without replaying actions.
+
+Setup diagnostics now check Node's actual major version, show corrective actions, and keep raw command output/credentials out of diagnostics. Markdown reports show scanner status, incomplete coverage and parse-error counts. Public Docs and README describe the new workflow; the nine historical terminal screenshots remain actual recordings from their documented earlier commit. The reviewed runtime bundle now has 69 source assets and excludes generated hidden directories, including Vercel artifacts. CI adds installed-wheel project smoke checks and the existing real public-site browser regression. [Roadmap](roadmap.md) records delivered acceptance gates, next comparison/triage work and the recurring regression loop.
+
+### Prerequisites and commands
+
+Tested on Linux with Python 3.12.14, uv 0.12.19, Node 24.19.0, npm 11.9.0, the existing locked `.venv`/npm dependencies, installed Semgrep, Chromium `/usr/bin/chromium`, Vercel CLI 63.1.0 / `@vercel/next` 22.0.0, and cached PostgreSQL 17.11 (`postgres:17-alpine`). CI targets Node 22. The existing loopback native helper was restarted after rebuilding its assets, using separate `.shadowlab/phase2/native` data/token state. The static preview already served the rebuilt `apps/landing/out` on loopback port 3100.
+
+The managed command sandbox blocked Docker socket/loopback access and stalled asyncio's cross-thread SQLite wakeups; the independent SQLite diagnostic passed outside that syscall sandbox. Native browser, worker, build and database checks used individually approved local-test escalations. Environment network policy, credentials, TLS verification, application allowlists and execution policy were not changed. No VM boundary is claimed.
+
+```bash
+.venv/bin/ruff check packages apps/api tests scripts
+.venv/bin/python scripts/update-bundle.py
+NEXT_TELEMETRY_DISABLED=1 npm --prefix apps/landing run build
+npm --prefix apps/landing run typecheck
+npm --prefix apps/web run typecheck
+NEXT_TELEMETRY_DISABLED=1 npm --prefix apps/web run build -- --webpack
+NEXT_TELEMETRY_DISABLED=1 npm --prefix examples/vulnerable-nextjs run build -- --webpack
+SHADOWLAB_CHROMIUM_PATH=/usr/bin/chromium .venv/bin/python scripts/validate-landing.py
+node scripts/check-landing-vercel.cjs /workspace/.cache/shadowlab-vercel-cli/node_modules/@vercel/next
+UV_CACHE_DIR=/workspace/.cache/uv uv build --wheel
+.venv/bin/python scripts/check-bundle.py dist/shadowlab-0.1.0-py3-none-any.whl
+UV_CACHE_DIR=/workspace/.cache/uv \
+UV_TOOL_DIR="$PWD/.shadowlab/phase2/tools" \
+UV_TOOL_BIN_DIR="$PWD/.shadowlab/phase2/bin" \
+  uv tool install --reinstall --python 3.12 dist/shadowlab-0.1.0-py3-none-any.whl
+.venv/bin/python scripts/smoke-project-installed.py .shadowlab/phase2/bin/shadow
+SHADOWLAB_HOME="$PWD/.shadowlab/phase2/demo-home" \
+SHADOWLAB_CHROMIUM_PATH=/usr/bin/chromium \
+  .venv/bin/python scripts/smoke-installed.py .shadowlab/phase2/bin/shadow
+
+# Local daemon selectors were cleared for Docker commands.
+env -u DOCKER_HOST -u DOCKER_CONTEXT -u DOCKER_TLS \
+  -u DOCKER_TLS_VERIFY -u DOCKER_CERT_PATH \
+  docker --host=unix:///var/run/docker.sock network create --internal shadowlab-phase2-pg
+env -u DOCKER_HOST -u DOCKER_CONTEXT -u DOCKER_TLS \
+  -u DOCKER_TLS_VERIFY -u DOCKER_CERT_PATH \
+  docker --host=unix:///var/run/docker.sock run --rm -d --name shadowlab-phase2-pg \
+  --network shadowlab-phase2-pg -p 127.0.0.1:55432:5432 --user postgres --read-only \
+  --tmpfs /tmp:rw,nosuid,size=192m --tmpfs /var/run/postgresql:rw,nosuid,uid=70,gid=70 \
+  --cap-drop ALL --security-opt no-new-privileges:true --pids-limit 128 --memory 256m --cpus 1 \
+  -e PGDATA=/tmp/pgdata -e POSTGRES_USER=shadowlab -e POSTGRES_PASSWORD=shadowlab-local \
+  -e POSTGRES_DB=shadowlab postgres:17-alpine
+SHADOWLAB_API_TOKEN=synthetic-config-check docker compose config --quiet
+
+# This internal network did not publish the requested loopback mapping.
+# Inspect the container's private address for a fresh run; 172.18.0.2 was observed here.
+SHADOWLAB_TEST_POSTGRES_URL='postgresql+psycopg://shadowlab:shadowlab-local@172.18.0.2:5432/shadowlab?connect_timeout=3' \
+SHADOWLAB_TEST_TARGET=http://127.0.0.1:3001 \
+SHADOWLAB_TEST_DASHBOARD=http://127.0.0.1:3000 \
+SHADOWLAB_CHROMIUM_PATH=/usr/bin/chromium \
+  .venv/bin/pytest -q
+.venv/bin/pytest -q tests/unit/test_project.py tests/unit/test_doctor.py tests/unit/test_repl.py
+git diff --check
+```
+
+PostgreSQL uses synthetic fixture credentials and temporary data only, on a Docker network with no outbound route. The private database address is not a scanning target or public service. Compose configuration initially refused interpolation without its API token; the configuration-only check supplied a synthetic placeholder, without changing any stored credential.
+
+### Results and evidence
+
+| Check | Final result | Sanitized evidence |
+| --- | --- | --- |
+| Complete Python/API/browser suite | **91 passed, 0 failed, 0 skipped**, 226.48 s | `.shadowlab/phase2/full-final.log` |
+| Real three-identity browser baseline and patches | Three CONFIRMED baseline cases; identical browser assertions NOT_REPRODUCED on all three disposable patches; owner controls retained; review required, none merged | `.shadowlab/phase2/browser/results.json`, `report.md`, `report.json`; six safe UI PNGs in that directory |
+| Project isolation, history, reopening, repeated scans and context switches | Passed; quotes/case, root/symlink denial, unchanged source, operator-state isolation, per-project lock, stale/failed history, interruption recovery | Full suite above; installed smoke below |
+| Cancellation, timeout and failure cleanup | Passed; scanner descendant termination, malformed-manifest failure/retry, launch/exit failure, failed new scan never inherits old report; existing browser logout/relogin, repeated runs, cancellation and out-of-scope redirect tests preserved | Full suite above |
+| Installed wheel project console | Passed outside checkout; scan/routes/findings/history/reopen/export; three static hypotheses INCONCLUSIVE; Semgrep completed, OSV disabled | `.shadowlab/phase2/installed-project.json` |
+| Installed wheel synthetic demo | Passed; four expected cases confirmed, private report sanitized, all three service ports closed on quit | `.shadowlab/phase2/installed-demo.log` |
+| Real setup diagnostics | Passed; Node major 24, npm/Git found; no project state created | `.shadowlab/phase2/doctor.json` |
+| Wheel and reviewed bundle | Passed; 69 assets, no private/generated directories; all wheel assets match current reviewed files | `.shadowlab/phase2/bundle-check.log`, `wheel-build.log` |
+| Landing build / TypeScript / actual Vercel packaging | Passed; `/` and `/docs` static, zero runtime functions; former `out` override still rejected as expected | `.shadowlab/phase2/landing-build.log`, `typecheck.log`, `vercel-packaging.log`; `.shadowlab/vercel-manifest-fix/packaging-check.json` |
+| Public static-site Chromium checks | **10 passed**; updated project commands copy correctly; docs/navigation/images, responsive layout, animation controls/reduced motion, no-JS rendering and request restrictions retained | `.shadowlab/phase2/landing-browser.log`; `.shadowlab/vercel-validation/static-checks.json` and desktop/mobile PNGs |
+| Preserved frontend / reviewed demo builds | Passed; local web TypeScript and both production builds | `.shadowlab/phase2/web-typecheck.log`, `web-build.log`, `demo-build.log` |
+| Docker/PostgreSQL | Passed: Compose config; PostgreSQL 17.11 on isolated internal network; migrations and reconnect persistence test | Full suite above; disposable database/network removed afterward |
+| Python lint / whitespace | Passed | Commands above |
+
+Browser reports and screenshots were copied from the final e2e test's private SQLite/evidence directory after its successful three patch verifications. Exported text was checked for both synthetic identity tokens, the synthetic sensitive-value sentinel and the injected operator-secret sentinel; none were present. Reports retain redacted evidence and field names. The complete test database, settings documents, private API token files and service logs are not published. The usual local helper was restored with its original data/token after testing; the existing token's digest was unchanged. Only this task's disposable database/network was removed.
+
+
+The first non-e2e run had **77 passed, one failed, nine deselected**: PostgreSQL's requested loopback publication was unavailable on the internal network. Its private address was then verified with a bounded connection and used for the complete suite. The first complete run had **89 passed, one failed**: the long-running local frontend served an earlier build with the removed feature-branch install URL, and its Homebrew tab did not respond. Rebuilding/restarting the identified repository helper corrected the stale asset state. No frontend redesign or application feature change was needed. The descendant-cleanup test's process mock was also narrowed so its final `ps` assertion checks the real descendant instead of launching the mock again. Final results above use that corrected test.
+
+The optional `test_postgres_persistence_if_configured` still skips when `SHADOWLAB_TEST_POSTGRES_URL` is absent. Its prerequisite/skip logic is unchanged; it ran and passed in the final database-enabled suite. A missing database must not be represented as a passed persistence check.
+
+Limitations: project mode is heuristic Next.js source analysis, with no runtime verdict or dependency advisories. Missing/failed scanners do not prove a clean project. Native macOS Homebrew and Windows/WSL were not exercised. CI configuration was updated, but a hosted CI run is not claimed by local checks. Vercel adapter packaging/browser checks are local, not a hosted deployment or delivered-header guarantee. This increment does not rebuild the complete Docker application stack; relevant Docker checks cover the reviewed Compose configuration and disposable PostgreSQL persistence. Arbitrary untrusted repository execution remains disabled pending verified VM-grade or equivalent hardened isolation; Docker Compose alone is not that boundary. No merge, release publication, credential change, wider scan or security/network-policy expansion was performed.

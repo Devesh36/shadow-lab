@@ -7,6 +7,9 @@ files = {"alembic.ini", "pyproject.toml", "uv.lock", "infrastructure/sandbox/dem
 for directory in ("packages", "apps/api", "apps/web/app", "apps/web/components", "apps/web/lib",
                   "examples/vulnerable-nextjs/app", "examples/vulnerable-nextjs/lib"):
     for path in (root / directory).rglob("*"):
+        if path.is_symlink() or any(part.startswith('.') or part in {'node_modules', '__pycache__', 'dist', 'build', 'out'}
+                                    for part in path.relative_to(root).parts):
+            continue
         if path.is_file() and path.suffix in {".py", ".tsx", ".ts", ".css", ".yml", ".toml"}:
             files.add(path.relative_to(root).as_posix())
 for directory in ("apps/web", "examples/vulnerable-nextjs"):

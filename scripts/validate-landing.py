@@ -116,7 +116,7 @@ async def main():
             assert 'git+https://github.com/Devesh36/shadow-lab.git@main' in await page.evaluate('navigator.clipboard.readText()')
             await page.get_by_role('button', name='Copy Project analysis', exact=True).click()
             project_commands = await page.evaluate('navigator.clipboard.readText()')
-            assert 'shadow scan --repository .' in project_commands and '--target' not in project_commands
+            assert 'shadow repl' in project_commands and 'project .\nscan' in project_commands and '--target' not in project_commands
             await expect(page.locator('#project')).to_contain_text('Static hypotheses remain INCONCLUSIVE')
             await expect(page.locator('#review')).to_contain_text('requires your review')
             recordings = json.loads(Path('apps/landing/public/docs/terminal/manifest.json').read_text())['recordings']

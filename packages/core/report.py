@@ -13,6 +13,14 @@ def report(store, scan_id, format="markdown"):
             f"Commit: {scan.get('commit') or 'uncommitted / unavailable'}",
             f"Target: {scan.get('target') or 'static analysis only'}", "",
             "Static hypotheses are not confirmed vulnerabilities. Results apply only to the supplied fixtures.", ""]
+    if scan.get('coverage'):
+        text += ['Coverage: ' + scan['coverage'], '']
+    if scan.get('scanners'):
+        text += ['## Scanner coverage', '']
+        for name, result in scan['scanners'].items():
+            text.append(f"{name}: {result['status']}" + (f" — {result['reason']}" if result.get('reason') else '') +
+                        (f"; parse errors: {result['errors']}" if result.get('errors') else ''))
+        text += ['', 'Completed analysis does not establish complete security coverage.', '']
     for finding in findings:
         text += [f"## {finding['title']}", "", f"Severity: {finding['severity']} | State: {finding['state']}",
                  f"Category: {finding['category']} | CWE: {finding.get('cwe') or 'n/a'}",

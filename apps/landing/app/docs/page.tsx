@@ -263,30 +263,41 @@ export default function Docs() {
             <span className="docs-step">04 / YOUR SOURCE</span>
             <h2>Use it in your project</h2>
             <p>
-              V1&apos;s route discovery focuses on Next.js projects. From your
-              project directory, use the standalone CLI in your normal shell.
-              These commands are not REPL commands:
+              Open the console from your Next.js project directory. Select your
+              source, run an analysis, and inspect the saved results in one place:
             </p>
             <Command label="Project analysis">
               {
-                'cd /path/to/your-nextjs-project\nshadow init\nshadow analyze .\nshadow scan --repository .\nshadow findings\nshadow report --format markdown > shadow-report.md'
+                'cd /path/to/your-nextjs-project\nshadow repl\n# At shadow>:\nproject .\nscan\nroutes\nfindings\nhistory\nreport\nreport json'
               }
             </Command>
             <p>
-              <code>analyze .</code> prints discovered routes and source
-              locations. <code>scan --repository .</code> runs source analysis
-              and available scanners, with no dynamic target enabled. It does
-              not build, install, or execute your project. Static hypotheses
-              remain <code>INCONCLUSIVE</code> until runtime validation is
-              performed.
+              <code>project .</code> selects the current directory. From a parent
+              directory, use <code>project &quot;My Project&quot;</code> for a path with
+              spaces. <code>scan</code> reads source and runs local Semgrep rules;
+              <code>routes</code> shows saved source locations. It does not build,
+              install, execute, or patch your project or contact your running app.
+              Static hypotheses remain <code>INCONCLUSIVE</code> until runtime
+              validation is performed. Dependency advisory checks and LLM calls
+              are disabled in this source-only console workflow.
             </p>
             <p>
-              The CLI writes local state into <code>.shadowlab/</code> in the
-              current directory. Add <code>.shadowlab/</code> to your
-              project&apos;s <code>.gitignore</code>, run these commands from
-              the same directory, and review exported reports before sharing.
-              For machine-readable output, use{' '}
-              <code>shadow report --format json &gt; shadow-report.json</code>.
+              Private history and reports live under
+              <code> ~/.local/share/shadowlab/projects/</code> (override with
+              <code> SHADOWLAB_HOME</code>), separate from your project and demo.
+              Reopen the same project to restore its latest scan; <code>history</code>
+              lists the ten latest scans, newest first, and <code>use 2</code>
+              selects the preceding one. <code>report</code> exports Markdown;
+              <code>report json</code> exports machine-readable results. Review
+              paths and findings before sharing. Ctrl+C cancels a scan and records
+              incomplete coverage; type <code>scan</code> to retry.
+            </p>
+            <p>
+              Projects must stay inside <code>SHADOWLAB_REPOSITORY_ROOT</code>,
+              which defaults to the directory where you opened the console.
+              The standalone CLI remains available with <code>shadow analyze .</code>
+              and <code>shadow scan --repository .</code>; those shell commands
+              retain their separate local <code>.shadowlab/</code> state.
             </p>
             <div className="docs-note">
               <strong>Current coverage</strong>
@@ -314,6 +325,9 @@ export default function Docs() {
                 </thead>
                 <tbody>
                   {[
+                    ['project PATH', 'Select a project for source-only analysis.'],
+                    ['scan / routes', 'Analyze the selected project / list saved routes.'],
+                    ['history / use NUMBER', 'List recent project scans / select a saved scan.'],
                     ['demo / 1', 'Run the bundled synthetic investigation.'],
                     [
                       'doctor / 2',
@@ -325,15 +339,15 @@ export default function Docs() {
                     ],
                     [
                       'findings',
-                      'List the latest demo findings and their verdicts.',
+                      'List the selected project or demo findings and their verdicts.',
                     ],
                     [
                       'fix NUMBER',
                       'Approve a disposable demo patch experiment; review its diff.',
                     ],
                     [
-                      'report',
-                      'Export the latest demo report and print its private file path.',
+                      'report / report json',
+                      'Export a private report; JSON is available in project mode.',
                     ],
                     ['stop', 'Stop the demo services; retain saved evidence.'],
                     [

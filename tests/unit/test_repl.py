@@ -121,3 +121,37 @@ def test_repl_interrupt_cancels_active_scan_before_stopping_services(monkeypatch
     commands = iter(['demo', 'quit'])
     run(input_fn=lambda _: next(commands), output=lambda _: None, runtime_factory=Runtime)
     assert calls[-2:] == ['/scans/active-scan/cancel', 'closed']
+
+
+def test_context_switch_and_invalid_input_preserve_the_correct_session(monkeypatch):
+    monkeypatch.setenv('SHADOWLAB_NO_OPEN', '1')
+    runtimes, projects = [], []
+    class Runtime:
+        web_url = 'http://127.0.0.1:1234'
+        def __init__(self, **kwargs):
+            self.closed = False
+            runtimes.append(self)
+        def start(self):
+            pass
+        def request(self, method, path, **kwargs):
+            return SimpleNamespace(json=lambda: {'id': 'demo-scan', 'status': 'completed',
+                                                'stage': 'completed', 'findings': []})
+        def close(self):
+            self.closed = True
+    class Project:
+        def __init__(self, path, **kwargs):
+            if path == 'Missing':
+                raise ValueError('Missing project')
+            assert path == 'Mixed Case'
+            self.path, self.closed = path, False
+            projects.append(self)
+        def close(self):
+            self.closed = True
+    output = []
+    commands = iter(['demo', 'project "Missing"', 'findings', 'project "Unclosed',
+                     'project "Mixed Case"', 'demo', 'quit'])
+    run(input_fn=lambda _: next(commands), output=output.append, runtime_factory=Runtime, project_factory=Project)
+    assert len(runtimes) == 2 and all(r.closed for r in runtimes)
+    assert len(projects) == 1 and projects[0].closed
+    assert 'Unclosed quote' in '\n'.join(output)
+    assert '\n'.join(output).count('No findings in this investigation.') == 3

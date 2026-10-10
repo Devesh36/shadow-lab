@@ -23,8 +23,8 @@ class Document(Base):
 
 
 class Store:
-    def __init__(self, url: str | None = None):
-        self.data_dir = Path(os.getenv("SHADOWLAB_DATA_DIR", ".shadowlab")).resolve()
+    def __init__(self, url: str | None = None, *, data_dir: Path | str | None = None):
+        self.data_dir = Path(data_dir if data_dir is not None else os.getenv("SHADOWLAB_DATA_DIR", ".shadowlab")).resolve()
         self.data_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         url = url or os.getenv("SHADOWLAB_DATABASE_URL", f"sqlite:///{self.data_dir / 'shadowlab.db'}")
         self.engine = create_engine(url, connect_args={"check_same_thread": False} if url.startswith("sqlite") else {})

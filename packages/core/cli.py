@@ -78,13 +78,15 @@ def main():
                 raise ValueError("No scans available")
             print(report(store, args.scan_id or scans[-1]["id"], args.format))
         elif args.command == "doctor":
+            from packages.core.doctor import launcher_checks
             def present(tool):
                 return bool(shutil.which(tool) or Path(sys.executable).with_name(tool).is_file()
                             or (store.data_dir / "tools" / tool).is_file())
             print(json.dumps({"database": "connected" if store.list("repository") is not None else "failed",
                               "tools": {t: present(t) for t in ("git", "node", "semgrep", "osv-scanner", "docker", "chromium")},
                               "llm_key_configured": bool(os.getenv("SHADOWLAB_LLM_API_KEY")),
-                              "mode": store.settings().sandbox_mode}, indent=2))
+                              "mode": store.settings().sandbox_mode,
+                              "launcher": launcher_checks()}, indent=2))
     except (ValueError, OSError) as exc:
         parser.exit(2, str(exc) + "\n")
 
